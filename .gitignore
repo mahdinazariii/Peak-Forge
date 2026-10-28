@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+
+# Database files
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Logs & temp files
+*.log
+.DS_Store
+Thumbs.db
+.env

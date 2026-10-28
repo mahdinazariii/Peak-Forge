@@ -89,19 +89,46 @@ $("forgot").addEventListener("click", (e) => {
 });
 
 const loginForm = $("loginForm");
-loginForm.addEventListener("submit", (e) => {
+loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const ok = validate(loginForm, loginForm, {
     email: rules.email,
     password: (v) => v !== "" || "رمز عبور را وارد کنید.",
   });
   if (!ok) return;
-  let role = "athlete";
+
+  const email = loginForm.elements.email.value.trim();
+  const password = loginForm.elements.password.value;
+  const submitBtn = loginForm.querySelector("button[type='submit']");
+  if (submitBtn) submitBtn.disabled = true;
+
   try {
-    role = localStorage.getItem("role") || "athlete";
-  } catch {}
-  toast("ورود موفق");
-  setTimeout(() => (location.href = HOME[role]), 600);
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      toast(data.error || "خطا در ورود به حساب.");
+      return;
+    }
+
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+    localStorage.setItem("role", data.user.role);
+
+    toast("ورود موفقیت‌آمیز بود");
+    setTimeout(() => {
+      location.href = HOME[data.user.role] || HOME.athlete;
+    }, 600);
+  } catch (err) {
+    console.error(err);
+    toast("خطا در برقراری ارتباط با سرور");
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
 });
 
 const form = $("signupForm");
@@ -140,7 +167,7 @@ form
     r.addEventListener("change", () => ($("roleErr").textContent = "")),
   );
 
-form.addEventListener("submit", (e) => {
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
   if (!stepValid(step)) return;
   if (step < 3) return showStep(step + 1);
@@ -163,16 +190,38 @@ form.addEventListener("submit", (e) => {
       .map((s) => s.trim())
       .filter(Boolean),
   };
-  // TODO: POST /api/register با data → ارسال ایمیل تأیید
-  try {
-    localStorage.setItem("role", data.role);
-  } catch {}
 
-  form.hidden = true;
-  $("steps").hidden = true;
-  $("done").hidden = false;
-  $("doneTitle").textContent = `${data.first} عزیز، خوش آمدید`;
-  $("doneLink").href = HOME[data.role];
+  const nextBtn = $("nextBtn");
+  if (nextBtn) nextBtn.disabled = true;
+
+  try {
+    const res = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    const resp = await res.json();
+    if (!res.ok) {
+      toast(resp.error || "خطا در ثبت‌نام.");
+      return;
+    }
+
+    localStorage.setItem("token", resp.token);
+    localStorage.setItem("user", JSON.stringify(resp.user));
+    localStorage.setItem("role", data.role);
+
+    form.hidden = true;
+    $("steps").hidden = true;
+    $("done").hidden = false;
+    $("doneTitle").textContent = `${data.first} عزیز، خوش آمدید`;
+    $("doneLink").href = HOME[data.role];
+  } catch (err) {
+    console.error(err);
+    toast("خطا در برقراری ارتباط با سرور");
+  } finally {
+    if (nextBtn) nextBtn.disabled = false;
+  }
 });
 
 form.elements.password.addEventListener("input", (e) => {
