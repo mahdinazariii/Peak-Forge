@@ -1,80 +1,27 @@
-const ex = (name, sets, rest, done = false) => ({ name, sets, rest, done });
+// ath_pre_exercise.js — premium athlete workout page, connected to /api/workouts
+if (typeof requireAuth === "function" && !requireAuth()) throw new Error("unauthorized");
+if (typeof requireRole === "function") requireRole("athlete");
 
-const days = [
-  {
-    d: "ش",
-    name: "شنبه",
-    focus: "سینه و پشت بازو",
-    list: [
-      ex("پرس سینه هالتر", "۴ × ۱۰", "۹۰ ثانیه", true),
-      ex("پرس بالا سینه دمبل", "۳ × ۱۲", "۶۰ ثانیه", true),
-      ex("دیپ", "۳ × ۱۰", "۶۰ ثانیه", true),
-      ex("پشت بازو سیم‌کش", "۳ × ۱۲", "۴۵ ثانیه", true),
-    ],
-  },
-  {
-    d: "ی",
-    name: "یکشنبه",
-    focus: "پا",
-    list: [
-      ex("اسکوات", "۴ × ۸", "۱۲۰ ثانیه", true),
-      ex("پرس پا", "۳ × ۱۲", "۹۰ ثانیه", true),
-      ex("لانژ", "۳ × ۱۰", "۶۰ ثانیه", true),
-      ex("ساق پا ایستاده", "۴ × ۱۵", "۴۵ ثانیه", false),
-    ],
-  },
-  { d: "د", name: "دوشنبه", focus: "استراحت", rest: true, list: [] },
-  {
-    d: "س",
-    name: "سه‌شنبه",
-    focus: "پشت و جلو بازو",
-    list: [
-      ex("بارفیکس", "۴ × ۸", "۹۰ ثانیه", true),
-      ex("روئینگ هالتر", "۴ × ۱۰", "۹۰ ثانیه", true),
-      ex("لت سیم‌کش", "۳ × ۱۲", "۶۰ ثانیه", true),
-      ex("جلو بازو دمبل", "۳ × ۱۲", "۴۵ ثانیه", true),
-    ],
-  },
-  {
-    d: "چ",
-    name: "چهارشنبه",
-    focus: "شانه",
-    list: [
-      ex("پرس سرشانه", "۴ × ۱۰", "۹۰ ثانیه", true),
-      ex("نشر از جانب", "۴ × ۱۵", "۴۵ ثانیه", true),
-      ex("نشر خم", "۳ × ۱۵", "۴۵ ثانیه", false),
-      ex("شراگ", "۳ × ۱۲", "۶۰ ثانیه", false),
-    ],
-  },
-  {
-    d: "پ",
-    name: "پنجشنبه",
-    focus: "هوازی و شکم",
-    list: [
-      ex("دویدن روی تردمیل", "۲۰ دقیقه", "—"),
-      ex("پلانک", "۳ × ۶۰ ثانیه", "۳۰ ثانیه"),
-      ex("کرانچ", "۳ × ۲۰", "۳۰ ثانیه"),
-      ex("بالا آوردن پا", "۳ × ۱۵", "۳۰ ثانیه"),
-    ],
-  },
-  { d: "ج", name: "جمعه", focus: "استراحت", rest: true, list: [] },
-];
+// ── Constants ────────────────────────────────────────────────────────────────
+const DAY_NAMES = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"];
+const DAY_SHORT = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
 
-const PROGRAM = {
-  weeks: 8,
-  current: 3,
-  sessionsPerWeek: days.filter((x) => !x.rest).length,
-};
+// ── State ────────────────────────────────────────────────────────────────────
+let days = [];    // [{day_index, day_name, focus, rest, list:[exercise]}]
+let logs = {};    // { exercise_id: done(bool) }
+let selected = 0;
+let program = null;
 
-const todayIdx = (new Date().getDay() + 1) % 7;
-let selected = todayIdx;
+const todayIdx = (new Date().getDay() + 1) % 7; // 0=شنبه … 6=جمعه
 
-const fa = (n) => Math.round(n).toLocaleString("fa-IR");
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const fa = (n) => Math.round(Number(n)).toLocaleString("fa-IR");
 const pctOf = (day) =>
-  day.list.length
-    ? (day.list.filter((e) => e.done).length / day.list.length) * 100
+  day.list && day.list.length
+    ? (day.list.filter((e) => logs[e.id]).length / day.list.length) * 100
     : 0;
 
+// ── Render ───────────────────────────────────────────────────────────────────
 function renderWeek() {
   const box = document.getElementById("week");
   box.innerHTML = "";
@@ -90,9 +37,10 @@ function renderWeek() {
     b.querySelector("i").style.height = day.rest
       ? "4%"
       : Math.max(pctOf(day), 4) + "%";
-    b.querySelector("span").textContent = day.d;
+    b.querySelector("span").textContent = DAY_SHORT[i] || String(i);
     b.title =
-      day.name + (day.rest ? " (استراحت)" : " — " + fa(pctOf(day)) + "٪");
+      (day.day_name || DAY_NAMES[i]) +
+      (day.rest ? " (استراحت)" : " — " + fa(pctOf(day)) + "٪");
     b.addEventListener("click", () => {
       selected = i;
       render();
@@ -103,53 +51,58 @@ function renderWeek() {
 
 function item(e, onToggle) {
   const el = document.createElement("label");
-  el.className = "item" + (e.done ? " done" : "");
+  el.className = "item" + (logs[e.id] ? " done" : "");
   el.innerHTML = `<input type="checkbox" /><span class="box"></span><div><strong></strong><small></small></div>`;
-  el.querySelector("input").checked = e.done;
+  el.querySelector("input").checked = !!logs[e.id];
   el.querySelector("strong").textContent = e.name;
-  el.querySelector("small").textContent = `${e.sets} · استراحت ${e.rest}`;
+  el.querySelector("small").textContent =
+    `${e.sets || ""}${e.rest ? " · استراحت " + e.rest : ""}`;
   el.querySelector("input").addEventListener("change", onToggle);
   return el;
 }
 
 function renderDay() {
   const day = days[selected];
-  const done = day.list.filter((e) => e.done).length;
+  if (!day) return;
+  const done = day.list ? day.list.filter((e) => logs[e.id]).length : 0;
   const pct = pctOf(day);
 
   document.getElementById("dayName").textContent =
-    day.name + (selected === todayIdx ? " (امروز)" : "");
-  document.getElementById("dayFocus").textContent = day.focus;
+    (day.day_name || DAY_NAMES[selected]) + (selected === todayIdx ? " (امروز)" : "");
+  document.getElementById("dayFocus").textContent = day.focus || "";
   document.getElementById("dayCount").textContent = day.rest
     ? "روز استراحت"
     : `${fa(done)} از ${fa(day.list.length)} حرکت`;
-  document.getElementById("percent").textContent = day.rest
-    ? "—"
-    : fa(pct) + "٪";
+  document.getElementById("percent").textContent = day.rest ? "—" : fa(pct) + "٪";
 
   const C = 2 * Math.PI * 52;
   const ring = document.getElementById("ringFill");
   ring.style.strokeDasharray = C;
   ring.style.strokeDashoffset = C * (1 - (day.rest ? 0 : pct) / 100);
 
-  document.getElementById("lists").hidden = day.rest;
+  document.getElementById("lists").hidden = !!day.rest;
   document.getElementById("restBox").hidden = !day.rest;
   if (day.rest) return;
 
-  const todo = document.getElementById("todoList"),
-    dn = document.getElementById("doneList");
+  const todo = document.getElementById("todoList");
+  const dn = document.getElementById("doneList");
   todo.innerHTML = "";
   dn.innerHTML = "";
   day.list.forEach((e) => {
-    (e.done ? dn : todo).appendChild(
-      item(e, () => {
-        e.done = !e.done;
+    (logs[e.id] ? dn : todo).appendChild(
+      item(e, async () => {
+        const newDone = !logs[e.id];
+        logs[e.id] = newDone;
+        await apiFetch("/workouts/log", {
+          method: "POST",
+          body: JSON.stringify({ exercise_id: e.id, done: newDone }),
+        });
         render();
       }),
     );
   });
   if (!todo.children.length)
-    todo.innerHTML = `<p class="empty">همه‌ی حرکت‌ها انجام شد. دمت گرم!</p>`;
+    todo.innerHTML = `<p class="empty">همه‌ی حرکت‌ها انجام شد. دمت گرم! 💪</p>`;
   if (!dn.children.length)
     dn.innerHTML = `<p class="empty">هنوز حرکتی انجام نشده. با اولین حرکت شروع کنید.</p>`;
   document.getElementById("todoN").textContent = fa(day.list.length - done);
@@ -157,21 +110,31 @@ function renderDay() {
 }
 
 function renderProgram() {
-  const perWeek = PROGRAM.sessionsPerWeek;
-  const total = PROGRAM.weeks * perWeek;
-  const pastDone = (PROGRAM.current - 1) * perWeek;
+  const perWeek = days.filter((x) => !x.rest).length || 1;
+  const totalWeeks = program.weeks || 1;
+
+  // current week from assignment date, capped at the program length
+  let current = 1;
+  if (program.assigned_at) {
+    const assigned = new Date(String(program.assigned_at).replace(" ", "T") + "Z");
+    const daysIn = Math.max(0, Math.floor((Date.now() - assigned.getTime()) / 86400000));
+    current = Math.min(totalWeeks, Math.floor(daysIn / 7) + 1);
+  }
+
+  const total = totalWeeks * perWeek;
+  const pastDone = (current - 1) * perWeek;
   const thisWeek = days
     .filter((x) => !x.rest)
     .reduce((s, x) => s + pctOf(x) / 100, 0);
   const pct = ((pastDone + thisWeek) / total) * 100;
 
   document.getElementById("programWeek").textContent =
-    `هفته‌ی ${fa(PROGRAM.current)} از ${fa(PROGRAM.weeks)}`;
-  document.getElementById("programBar").style.width = pct + "%";
+    `هفته‌ی ${fa(current)} از ${fa(totalWeeks)}`;
+  document.getElementById("programBar").style.width = Math.min(pct, 100) + "%";
   document.getElementById("programText").textContent =
     `${fa(pct)}٪ از دوره طی شده`;
   document.getElementById("programLeft").textContent =
-    `${fa(PROGRAM.weeks - PROGRAM.current)} هفته‌ی دیگر`;
+    `${fa(totalWeeks - current)} هفته‌ی دیگر`;
 }
 
 function render() {
@@ -179,4 +142,65 @@ function render() {
   renderDay();
   renderProgram();
 }
-render();
+
+// ── Build days structure from flat exercises list ────────────────────────────
+function buildDays(exercises) {
+  const map = {};
+  exercises.forEach((e) => {
+    const idx = e.day_index ?? 0;
+    if (!map[idx]) {
+      map[idx] = {
+        day_index: idx,
+        day_name: e.day_name || DAY_NAMES[idx] || `روز ${idx + 1}`,
+        focus: e.focus || "",
+        rest: false,
+        list: [],
+      };
+    }
+    map[idx].list.push(e);
+  });
+
+  const result = [];
+  for (let i = 0; i < 7; i++) {
+    result.push(
+      map[i] || {
+        day_index: i,
+        day_name: DAY_NAMES[i],
+        focus: "استراحت",
+        rest: true,
+        list: [],
+      },
+    );
+  }
+  return result;
+}
+
+// ── Bootstrap ────────────────────────────────────────────────────────────────
+(async () => {
+  const progResult = await apiFetch("/workouts/programs");
+  if (!progResult || !progResult.ok || !progResult.data.programs.length) {
+    days = Array.from({ length: 7 }, (_, i) => ({
+      day_index: i, day_name: DAY_NAMES[i], focus: "—", rest: true, list: [],
+    }));
+    program = { name: "هنوز برنامه‌ای دریافت نکرده‌اید", weeks: 1 };
+    selected = todayIdx;
+    render();
+    return;
+  }
+
+  program = progResult.data.programs[0];
+
+  const exResult = await apiFetch(`/workouts/programs/${program.id}/exercises`);
+  const exercises = exResult?.data?.exercises || [];
+  days = buildDays(exercises);
+  selected = todayIdx;
+
+  const logResult = await apiFetch("/workouts/log");
+  if (logResult && logResult.ok) {
+    logResult.data.logs.forEach((l) => {
+      logs[l.exercise_id] = !!l.done;
+    });
+  }
+
+  render();
+})();

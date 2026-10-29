@@ -105,3 +105,47 @@
   text-align: center;
   flex: 1;
 }
+
+/* Category tag + editor + detail box (wired to API) */
+.ath-top .cat {
+  margin-inline-start: auto;
+  font-size: 0.7rem;
+  color: var(--muted);
+  background: var(--surface);
+  border-radius: 0.5rem;
+  padding: 0.15rem 0.5rem;
+}
+.cat-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--surface);
+  border-radius: 0.7rem;
+  padding: 0.5rem 0.7rem;
+}
+.cat-edit select {
+  background: var(--black);
+  color: var(--white);
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  font: inherit;
+  padding: 0.35rem 0.6rem;
+}
+.ath-detail {
+  background: var(--surface);
+  border-radius: 0.7rem;
+  padding: 0.6rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.ath-detail .muted {
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin: 0;
+}
+.detail-records {
+  margin: 0;
+  padding-inline-start: 1.2rem;
+  font-size: 0.8rem;
+}

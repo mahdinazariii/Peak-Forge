@@ -17,7 +17,7 @@
         <div class="head-info">
           <h1 id="fullName"></h1>
           <p class="muted" id="place"></p>
-          <p class="muted">مربی: علی رضایی</p>
+          <p class="muted" id="coachName">مربی: —</p>
         </div>
         <span class="tag">Premium</span>
       </section>
@@ -59,8 +59,40 @@
           id="chart"
           viewBox="0 0 320 140"
           role="img"
-          aria-label="نمودار وزن در ۸ هفته‌ی اخیر"
+          aria-label="نمودار وزن"
         ></svg>
+      </section>
+
+      <section class="card" id="fatCard" hidden>
+        <div class="row-head">
+          <h2>روند چربی بدن</h2>
+          <span class="muted" id="fatDelta"></span>
+        </div>
+        <svg
+          class="chart"
+          id="fatChart"
+          viewBox="0 0 320 140"
+          role="img"
+          aria-label="نمودار چربی بدن"
+        ></svg>
+      </section>
+
+      <section class="card">
+        <div class="row-head">
+          <h2>گزارش پیشرفت</h2>
+          <button type="button" class="btn-ghost" id="reportBtn">📄 دریافت گزارش</button>
+        </div>
+        <div class="mini-stats" id="reportStats"></div>
+      </section>
+
+      <section class="card">
+        <div class="row-head"><h2>رکوردهای شخصی</h2></div>
+        <ul class="medals" id="records"></ul>
+        <form class="rec-form" id="recordForm">
+          <label>حرکت<input id="recName" required placeholder="مثلاً ددلیفت" /></label>
+          <label>وزن (کیلوگرم)<input id="recWeight" type="number" step="0.5" min="1" required /></label>
+          <button type="submit" class="btn-ghost">ثبت رکورد</button>
+        </form>
       </section>
 
       <section class="card">
@@ -132,6 +164,7 @@
         <img src="./icons/user.svg" alt="پروفایل" />
       </div>
     </div>
+    <script src="./api.js"></script>
     <script src="./ath_pre_user.js"></script>
   </body>
 </html>

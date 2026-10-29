@@ -215,7 +215,8 @@ setInterval(poll, 4000);
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 
-// Priority star is a Premium feature on the free tier; keep it toggled off
+// Priority star is a Premium feature on the free tier (data-premium blocks the
+// click in ath_free_common.js); the toggle still works if the lock is removed
 priorityBtn.addEventListener("click", () => {
   const pressed = priorityBtn.getAttribute("aria-pressed") === "true";
   priorityBtn.setAttribute("aria-pressed", pressed ? "false" : "true");

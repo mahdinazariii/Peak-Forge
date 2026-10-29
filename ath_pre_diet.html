@@ -52,12 +52,12 @@
       <section class="card">
         <div class="row-head">
           <h2>کل دوره‌ی رژیم</h2>
-          <span class="muted">هفته‌ی ۳ از ۸</span>
+          <span class="muted" id="dietWeek">—</span>
         </div>
-        <div class="bar big"><i style="width: 37.5%"></i></div>
+        <div class="bar big"><i id="dietBar" style="width: 0%"></i></div>
         <div class="row-head small">
-          <span class="muted">۳۷٪ از رژیم طی شده</span
-          ><span class="muted">۵ هفته مانده</span>
+          <span class="muted" id="dietPct">—</span>
+          <span class="muted" id="dietLeft">—</span>
         </div>
       </section>
 
@@ -92,6 +92,7 @@
         </a>
       </div>
     </div>
+    <script src="./api.js"></script>
     <script src="./ath_pre_diet.js"></script>
   </body>
 </html>

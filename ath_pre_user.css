@@ -377,3 +377,52 @@ p {
     transition: none !important;
   }
 }
+
+/* New sections wired to the API */
+.btn-ghost {
+  border: 1px solid var(--surface, #2a2a2a);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.45rem 0.9rem;
+  border-radius: 0.7rem;
+  cursor: pointer;
+}
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.rec-form {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-top: 0.8rem;
+}
+.rec-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--muted, #9a9a8f);
+  flex: 1;
+  min-width: 8rem;
+}
+.rec-form input {
+  background: var(--surface, #242424);
+  border: 1px solid transparent;
+  border-radius: 0.6rem;
+  color: inherit;
+  font: inherit;
+  padding: 0.5rem 0.7rem;
+}
+@media print {
+  .footer,
+  #profileForm,
+  .toggle-row,
+  .rec-form,
+  #reportBtn,
+  #editBtn {
+    display: none !important;
+  }
+}

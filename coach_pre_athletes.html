@@ -58,7 +58,11 @@
         <h2>افزودن ورزشکار</h2>
         <div class="form-row">
           <label class="field"
-            >نام و نام خانوادگی<input id="newName" required
+            >ایمیل ورزشکار<input
+              id="newEmail"
+              type="email"
+              required
+              placeholder="ورزشکار باید قبلاً ثبت‌نام کرده باشد"
           /></label>
           <label class="field">دسته<select id="newCat"></select></label>
           <button class="btn" type="submit">افزودن</button>
@@ -86,6 +90,7 @@
         /></a>
       </div>
     </div>
+    <script src="./api.js"></script>
     <script src="./coach_pre_common.js"></script>
     <script src="./coach_pre_athletes.js"></script>
   </body>

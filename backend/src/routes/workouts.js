@@ -128,6 +128,71 @@ router.post('/programs/:id/exercises', authMiddleware, async (req, res) => {
   }
 });
 
+// PATCH /api/workouts/programs/:id — coach: rename a program / change weeks
+router.patch('/programs/:id', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'coach') {
+      return res.status(403).json({ error: 'دسترسی غیرمجاز.' });
+    }
+    const prog = await dbAsync.get(
+      'SELECT id FROM programs WHERE id = ? AND coach_id = ?',
+      [req.params.id, req.user.id]
+    );
+    if (!prog) return res.status(404).json({ error: 'برنامه یافت نشد.' });
+
+    const { name, weeks } = req.body;
+    await dbAsync.run(
+      `UPDATE programs SET name = COALESCE(?, name), weeks = COALESCE(?, weeks) WHERE id = ?`,
+      [name && String(name).trim() ? String(name).trim() : null,
+       weeks ? parseInt(weeks) : null,
+       req.params.id]
+    );
+    const updated = await dbAsync.get('SELECT * FROM programs WHERE id = ?', [req.params.id]);
+    return res.json({ message: 'برنامه به‌روزرسانی شد.', program: updated });
+  } catch (err) {
+    console.error('PATCH program error:', err);
+    return res.status(500).json({ error: 'خطای سرور.' });
+  }
+});
+
+// POST /api/workouts/programs/:id/copy — coach: duplicate a program with its exercises
+router.post('/programs/:id/copy', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'coach') {
+      return res.status(403).json({ error: 'دسترسی غیرمجاز.' });
+    }
+    const src = await dbAsync.get(
+      'SELECT * FROM programs WHERE id = ? AND coach_id = ?',
+      [req.params.id, req.user.id]
+    );
+    if (!src) return res.status(404).json({ error: 'برنامه یافت نشد.' });
+
+    const result = await dbAsync.run(
+      `INSERT INTO programs (coach_id, name, type, weeks) VALUES (?, ?, ?, ?)`,
+      [req.user.id, req.body && req.body.name ? String(req.body.name).trim() : `${src.name} (کپی)`, src.type, src.weeks]
+    );
+    const newId = result.lastID;
+
+    const srcEx = await dbAsync.all(
+      `SELECT name, sets, rest, day_index, day_name, focus, sort_order
+       FROM exercises WHERE program_id = ? ORDER BY sort_order ASC`,
+      [src.id]
+    );
+    for (const e of srcEx) {
+      await dbAsync.run(
+        `INSERT INTO exercises (program_id, name, sets, rest, day_index, day_name, focus, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [newId, e.name, e.sets, e.rest, e.day_index, e.day_name, e.focus, e.sort_order]
+      );
+    }
+    const program = await dbAsync.get('SELECT * FROM programs WHERE id = ?', [newId]);
+    return res.status(201).json({ message: 'کپی ساخته شد.', program, exercises_copied: srcEx.length });
+  } catch (err) {
+    console.error('COPY program error:', err);
+    return res.status(500).json({ error: 'خطای سرور.' });
+  }
+});
+
 // ── Assign Program to Athlete ─────────────────────────────────────────────────
 
 // POST /api/workouts/programs/:id/assign — coach: assign program to an athlete
@@ -209,18 +274,18 @@ router.post('/log', authMiddleware, async (req, res) => {
   }
 });
 
-// GET /api/workouts/athletes — coach: list their athletes (users assigned to them)
+// GET /api/workouts/athletes — coach: list their linked athletes
 router.get('/athletes', authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== 'coach') {
       return res.status(403).json({ error: 'دسترسی غیرمجاز.' });
     }
     const athletes = await dbAsync.all(
-      `SELECT DISTINCT u.id, u.first_name, u.last_name, u.email
-       FROM users u
-       JOIN program_assignments pa ON pa.athlete_id = u.id
-       JOIN programs p ON p.id = pa.program_id
-       WHERE p.coach_id = ?`,
+      `SELECT u.id, u.first_name, u.last_name, u.email
+       FROM coach_athletes ca
+       JOIN users u ON u.id = ca.athlete_id
+       WHERE ca.coach_id = ?
+       ORDER BY u.first_name, u.last_name`,
       [req.user.id]
     );
     return res.json({ athletes });

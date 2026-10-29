@@ -6,6 +6,9 @@ const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Error connecting to SQLite database:', err.message);
   } else {
+    // SQLite has FK enforcement OFF by default — without this, ON DELETE
+    // CASCADE leaves orphan rows (meals of deleted plans, etc.)
+    db.run('PRAGMA foreign_keys = ON');
     console.log('Connected to SQLite database at:', dbPath);
   }
 });
@@ -221,6 +224,58 @@ async function initDb() {
       FOREIGN KEY(receiver_id) REFERENCES users(id) ON DELETE CASCADE,
       FOREIGN KEY(forum_id)    REFERENCES forums(id) ON DELETE CASCADE
     )
+  `);
+
+  // Coach-side category tag for each linked athlete (free text, e.g. حجم)
+  try {
+    await dbAsync.run(`ALTER TABLE coach_athletes ADD COLUMN category TEXT DEFAULT ''`);
+  } catch (e) { /* column already exists */ }
+
+  // Premium meal extras: calories and an alternative suggestion
+  try {
+    await dbAsync.run(`ALTER TABLE meals ADD COLUMN kcal REAL`);
+  } catch (e) { /* column already exists */ }
+  try {
+    await dbAsync.run(`ALTER TABLE meals ADD COLUMN alt TEXT DEFAULT ''`);
+  } catch (e) { /* column already exists */ }
+
+  // Daily body measurements logged by the athlete (weight in kg, body_fat in %)
+  await dbAsync.run(`
+    CREATE TABLE IF NOT EXISTS weight_logs (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      athlete_id INTEGER NOT NULL,
+      log_date   TEXT NOT NULL,
+      weight     REAL,
+      body_fat   REAL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(athlete_id, log_date),
+      FOREIGN KEY(athlete_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Personal records claimed by the athlete (e.g. ددلیفت ۸۵ کیلو × ۱)
+  await dbAsync.run(`
+    CREATE TABLE IF NOT EXISTS personal_records (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      athlete_id    INTEGER NOT NULL,
+      exercise_name TEXT NOT NULL,
+      weight        REAL NOT NULL,
+      reps          INTEGER DEFAULT 1,
+      created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(athlete_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Backfill coach_athletes for assignments made before the auto-link existed
+  await dbAsync.run(`
+    INSERT OR IGNORE INTO coach_athletes (coach_id, athlete_id)
+    SELECT p.coach_id, pa.athlete_id
+    FROM program_assignments pa JOIN programs p ON p.id = pa.program_id
+  `);
+  await dbAsync.run(`
+    INSERT OR IGNORE INTO coach_athletes (coach_id, athlete_id)
+    SELECT dp.coach_id, da.athlete_id
+    FROM diet_assignments da JOIN diet_plans dp ON dp.id = da.diet_plan_id
   `);
 
   console.log('Database tables verified/initialized.');

@@ -1,37 +1,38 @@
-const profile = {
-  first: "علی",
-  last: "رضایی",
-  height: 182,
-  weight: 85,
-  city: "تهران",
-  country: "ایران",
-  history: "۱۰ سال مربیگری بدنسازی و تغذیه‌ی ورزشی",
-  years: 10,
-};
-const medals = [
-  { t: "مربی برتر استان تهران", s: "فدراسیون بدنسازی · ۱۴۰۳" },
-  { t: "مدرک مربیگری درجه‌ی یک", s: "فدراسیون بدنسازی · ۱۳۹۹" },
-  { t: "مربی تیم قهرمان لیگ شهری", s: "۱۴۰۲" },
-];
+// coach_pre_user.js — premium coach profile, connected to /api/profile
+if (typeof requireAuth === "function" && !requireAuth()) throw new Error("unauthorized");
+if (typeof requireRole === "function") requireRole("coach");
+
+let coachUser = {};
+let coachProfile = {};
+// storefront has no backend tables yet — kept as local demo data
 const store = {
-  name: "فروشگاه مربی علی",
+  name: "فروشگاه مربی",
   products: [
     { name: "پروتئین وی ۲ پوند", price: 1450000 },
     { name: "کش تمرینی مقاومتی", price: 320000 },
     { name: "پکیج مشاوره‌ی ماهانه", price: 900000 },
   ],
 };
+const medals = [
+  { t: "مربی برتر استان", s: "فدراسیون بدنسازی · ۱۴۰۳" },
+  { t: "مدرک مربیگری درجه‌ی یک", s: "فدراسیون بدنسازی · ۱۳۹۹" },
+  { t: "مربی تیم قهرمان لیگ شهری", s: "۱۴۰۲" },
+];
 
 function renderProfile() {
-  $("fullName").textContent = `${profile.first} ${profile.last}`;
-  $("avatar").textContent = profile.first[0];
-  $("place").textContent = `${profile.city}، ${profile.country}`;
-  $("history").textContent = profile.history;
-  $("sAth").textContent = fa(ATHLETES.length);
-  $("sYears").textContent = fa(profile.years);
+  $("fullName").textContent = `${coachUser.first_name || ""} ${coachUser.last_name || ""}`.trim() || "—";
+  $("avatar").textContent = (coachUser.first_name || "؟")[0];
+  $("place").textContent = `${coachUser.city || "—"}، ${coachUser.country || "—"}`;
+  $("history").textContent = coachProfile.certifications || "—";
+  $("sAth").textContent = fa(coachStats.athlete_count ?? ATHLETES.length);
+  $("sYears").textContent = fa(coachProfile.experience_years || 0);
   $("sProd").textContent = fa(store.products.length);
 }
+
+let coachStats = {};
+
 function renderMedals() {
+  $("medals").innerHTML = "";
   medals.forEach((m) => {
     const li = el("li");
     li.append(el("strong", null, m.t), el("small", null, m.s));
@@ -39,23 +40,49 @@ function renderMedals() {
   });
 }
 
-const form = $("profileForm"),
-  editBtn = $("editBtn");
+// ── Edit form ────────────────────────────────────────────────────────────────
+
+const form = $("profileForm");
+const editBtn = $("editBtn");
 let editing = false;
-const fillForm = () =>
-  Object.keys(profile).forEach((k) => {
-    if (form.elements[k]) form.elements[k].value = profile[k];
+
+const fillForm = () => {
+  const map = {
+    first: coachUser.first_name,
+    last: coachUser.last_name,
+    height: coachProfile.experience_years, // form field reused for experience years
+    weight: coachUser.weight,
+    city: coachUser.city,
+    country: coachUser.country,
+    history: coachProfile.certifications,
+  };
+  Object.keys(map).forEach((k) => {
+    if (form.elements[k]) form.elements[k].value = map[k] ?? "";
   });
-editBtn.addEventListener("click", () => {
+};
+
+editBtn.addEventListener("click", async () => {
   if (editing) {
-    ["first", "last", "city", "country", "history"].forEach(
-      (k) => (profile[k] = form.elements[k].value.trim() || profile[k]),
-    );
-    ["height", "weight"].forEach((k) => {
-      const v = parseFloat(form.elements[k].value);
-      if (v > 0) profile[k] = v;
-    });
-    renderProfile();
+    const body = {
+      first_name: form.elements["first"].value.trim() || undefined,
+      last_name: form.elements["last"].value.trim() || undefined,
+      city: form.elements["city"].value.trim() || undefined,
+      country: form.elements["country"].value.trim() || undefined,
+      experience_years: parseFloat(form.elements["height"].value) || undefined,
+      certifications: form.elements["history"].value.trim() || undefined,
+    };
+    const res = await apiFetch("/profile", { method: "PATCH", body: JSON.stringify(body) });
+    if (res && res.ok) {
+      Object.keys(body).forEach((k) => {
+        if (body[k] == null) return;
+        if (k in coachProfile) coachProfile[k] = body[k];
+        else coachUser[k] = body[k];
+      });
+      renderProfile();
+      toast("پروفایل ذخیره شد");
+    } else {
+      alert((res && res.data && res.data.error) || "خطا در ذخیره پروفایل");
+    }
   }
   editing = !editing;
   form.querySelectorAll("input").forEach((i) => (i.disabled = !editing));
@@ -63,6 +90,8 @@ editBtn.addEventListener("click", () => {
   editBtn.textContent = editing ? "ذخیره" : "ویرایش";
   if (!editing) fillForm();
 });
+
+// ── Store (local demo) ───────────────────────────────────────────────────────
 
 function renderStore() {
   $("storeName").textContent = store.name;
@@ -90,8 +119,8 @@ function renderStore() {
 }
 $("prodForm").addEventListener("submit", (e) => {
   e.preventDefault();
-  const name = $("pName").value.trim(),
-    price = +$("pPrice").value;
+  const name = $("pName").value.trim();
+  const price = +$("pPrice").value;
   if (!name || price < 0) return;
   store.products.push({ name, price });
   $("pName").value = "";
@@ -100,6 +129,8 @@ $("prodForm").addEventListener("submit", (e) => {
   renderProfile();
   toast("محصول ثبت شد");
 });
+
+// ── Notification settings (persisted locally) ────────────────────────────────
 
 const settings = getSettings();
 [2, 3, 5, 7].forEach((d) => {
@@ -120,7 +151,19 @@ $("idleDays").addEventListener("change", () => {
   saveSettings(settings);
 });
 
-renderProfile();
-renderMedals();
-fillForm();
-renderStore();
+// ── Bootstrap ────────────────────────────────────────────────────────────────
+
+(async () => {
+  const res = await apiFetch("/profile");
+  if (res && res.ok) {
+    coachUser = res.data.user;
+    coachProfile = res.data.profile || {};
+  }
+  const stats = await apiFetch("/profile/stats/coach");
+  if (stats && stats.ok) coachStats = stats.data;
+
+  renderProfile();
+  renderMedals();
+  fillForm();
+  renderStore();
+})();

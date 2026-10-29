@@ -7,6 +7,7 @@ const profileRoutes = require('./routes/profile');
 const workoutRoutes = require('./routes/workouts');
 const dietRoutes = require('./routes/diet');
 const chatRoutes = require('./routes/chat');
+const coachRoutes = require('./routes/coach');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,6 +25,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/workouts', workoutRoutes);
 app.use('/api/diet', dietRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/coach', coachRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

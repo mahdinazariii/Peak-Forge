@@ -103,17 +103,81 @@ router.post('/plans/:id/meals', authMiddleware, async (req, res) => {
     if (req.user.role !== 'coach') {
       return res.status(403).json({ error: 'فقط مربیان می‌توانند وعده اضافه کنند.' });
     }
-    const { name, time, items, sort_order } = req.body;
+    const { name, time, items, sort_order, kcal, alt } = req.body;
     if (!name) return res.status(400).json({ error: 'نام وعده الزامی است.' });
 
     const result = await dbAsync.run(
-      `INSERT INTO meals (diet_plan_id, name, time, items, sort_order) VALUES (?, ?, ?, ?, ?)`,
-      [req.params.id, name.trim(), time || '', items || '', sort_order ?? 0]
+      `INSERT INTO meals (diet_plan_id, name, time, items, sort_order, kcal, alt) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [req.params.id, name.trim(), time || '', items || '', sort_order ?? 0,
+       kcal == null || kcal === '' ? null : parseFloat(kcal), alt || '']
     );
     const meal = await dbAsync.get('SELECT * FROM meals WHERE id = ?', [result.lastID]);
     return res.status(201).json({ message: 'وعده اضافه شد.', meal });
   } catch (err) {
     console.error('POST meals error:', err);
+    return res.status(500).json({ error: 'خطای سرور.' });
+  }
+});
+
+// PATCH /api/diet/plans/:id — coach: rename a diet plan / change weeks
+router.patch('/plans/:id', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'coach') {
+      return res.status(403).json({ error: 'دسترسی غیرمجاز.' });
+    }
+    const plan = await dbAsync.get(
+      'SELECT id FROM diet_plans WHERE id = ? AND coach_id = ?',
+      [req.params.id, req.user.id]
+    );
+    if (!plan) return res.status(404).json({ error: 'برنامه یافت نشد.' });
+
+    const { name, weeks } = req.body;
+    await dbAsync.run(
+      `UPDATE diet_plans SET name = COALESCE(?, name), weeks = COALESCE(?, weeks) WHERE id = ?`,
+      [name && String(name).trim() ? String(name).trim() : null,
+       weeks ? parseInt(weeks) : null,
+       req.params.id]
+    );
+    const updated = await dbAsync.get('SELECT * FROM diet_plans WHERE id = ?', [req.params.id]);
+    return res.json({ message: 'برنامه به‌روزرسانی شد.', plan: updated });
+  } catch (err) {
+    console.error('PATCH diet plan error:', err);
+    return res.status(500).json({ error: 'خطای سرور.' });
+  }
+});
+
+// POST /api/diet/plans/:id/copy — coach: duplicate a diet plan with its meals
+router.post('/plans/:id/copy', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'coach') {
+      return res.status(403).json({ error: 'دسترسی غیرمجاز.' });
+    }
+    const src = await dbAsync.get(
+      'SELECT * FROM diet_plans WHERE id = ? AND coach_id = ?',
+      [req.params.id, req.user.id]
+    );
+    if (!src) return res.status(404).json({ error: 'برنامه یافت نشد.' });
+
+    const result = await dbAsync.run(
+      `INSERT INTO diet_plans (coach_id, name, weeks) VALUES (?, ?, ?)`,
+      [req.user.id, req.body && req.body.name ? String(req.body.name).trim() : `${src.name} (کپی)`, src.weeks]
+    );
+    const newId = result.lastID;
+
+    const srcMeals = await dbAsync.all(
+      'SELECT name, time, items, sort_order, kcal, alt FROM meals WHERE diet_plan_id = ? ORDER BY sort_order ASC',
+      [src.id]
+    );
+    for (const m of srcMeals) {
+      await dbAsync.run(
+        `INSERT INTO meals (diet_plan_id, name, time, items, sort_order, kcal, alt) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [newId, m.name, m.time, m.items, m.sort_order, m.kcal, m.alt]
+      );
+    }
+    const plan = await dbAsync.get('SELECT * FROM diet_plans WHERE id = ?', [newId]);
+    return res.status(201).json({ message: 'کپی ساخته شد.', plan, meals_copied: srcMeals.length });
+  } catch (err) {
+    console.error('COPY diet plan error:', err);
     return res.status(500).json({ error: 'خطای سرور.' });
   }
 });
