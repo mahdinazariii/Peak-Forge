@@ -128,6 +128,58 @@ async function initDb() {
     )
   `);
 
+  // Diet plans table
+  await dbAsync.run(`
+    CREATE TABLE IF NOT EXISTS diet_plans (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      coach_id   INTEGER NOT NULL,
+      name       TEXT NOT NULL,
+      weeks      INTEGER DEFAULT 4,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(coach_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Meals inside diet plans
+  await dbAsync.run(`
+    CREATE TABLE IF NOT EXISTS meals (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      diet_plan_id INTEGER NOT NULL,
+      name         TEXT NOT NULL,
+      time         TEXT DEFAULT '',
+      items        TEXT DEFAULT '',
+      sort_order   INTEGER DEFAULT 0,
+      FOREIGN KEY(diet_plan_id) REFERENCES diet_plans(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Diet plan assignments (coach assigns diet plan to athlete)
+  await dbAsync.run(`
+    CREATE TABLE IF NOT EXISTS diet_assignments (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      diet_plan_id INTEGER NOT NULL,
+      athlete_id   INTEGER NOT NULL,
+      assigned_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(diet_plan_id, athlete_id),
+      FOREIGN KEY(diet_plan_id) REFERENCES diet_plans(id) ON DELETE CASCADE,
+      FOREIGN KEY(athlete_id)   REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Daily meal log (athlete marks meal as done)
+  await dbAsync.run(`
+    CREATE TABLE IF NOT EXISTS meal_logs (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      athlete_id  INTEGER NOT NULL,
+      meal_id     INTEGER NOT NULL,
+      log_date    TEXT NOT NULL,
+      done        INTEGER DEFAULT 0,
+      UNIQUE(athlete_id, meal_id, log_date),
+      FOREIGN KEY(athlete_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY(meal_id)    REFERENCES meals(id) ON DELETE CASCADE
+    )
+  `);
+
   // Coach-Athlete relationship table
   await dbAsync.run(`
     CREATE TABLE IF NOT EXISTS coach_athletes (

@@ -1,12 +1,18 @@
 /**
  * coach_free_programs.js — Programs management page for coaches
- * Connects to /api/workouts/* backend
+ * Connects to /api/workouts/* and /api/diet/* backend
+ * Programs with type="غذایی" use diet API, others use workouts API.
  */
 
 // ── State ────────────────────────────────────────────────────────────────────
-let plans    = [];
+let plans    = [];   // merged list from both workout + diet APIs
 let athletes = [];
 let sendPlan = null;
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function apiPath(plan) {
+  return plan._kind === 'diet' ? '/diet' : '/workouts';
+}
 
 // ── Render Programs ───────────────────────────────────────────────────────────
 function renderPlans() {
@@ -20,9 +26,10 @@ function renderPlans() {
     const c = el('article', 'card tpl');
 
     const top = el('div', 'tpl-top');
+    const typeLabel = p._kind === 'diet' ? 'غذایی' : (p.type || 'تمرینی');
     top.append(
       el('h3', null, p.name),
-      el('span', 'type' + (p.type === 'غذایی' ? ' food' : ''), p.type),
+      el('span', 'type' + (p._kind === 'diet' ? ' food' : ''), typeLabel),
     );
 
     const meta = el('div', 'tpl-meta');
@@ -57,16 +64,21 @@ $('tplForm').addEventListener('submit', async (e) => {
   const name = $('tplName').value.trim();
   if (!name) return;
 
+  const type  = $('tplType').value;
+  const weeks = +$('tplWeeks').value || 4;
+  const isDiet = (type === 'غذایی');
+  const path   = isDiet ? '/diet/plans' : '/workouts/programs';
+
   const submitBtn = $('tplForm').querySelector('button[type="submit"]');
   submitBtn.disabled = true;
 
-  const result = await apiFetch('/workouts/programs', {
+  const body = isDiet
+    ? { name, weeks }
+    : { name, type, weeks };
+
+  const result = await apiFetch(path, {
     method: 'POST',
-    body: JSON.stringify({
-      name,
-      type:  $('tplType').value,
-      weeks: +$('tplWeeks').value || 4,
-    }),
+    body: JSON.stringify(body),
   });
 
   submitBtn.disabled = false;
@@ -76,7 +88,10 @@ $('tplForm').addEventListener('submit', async (e) => {
     return;
   }
 
-  plans.unshift({ ...result.data.program, sent_count: 0 });
+  const newPlan = result.data.program || result.data.plan;
+  newPlan._kind = isDiet ? 'diet' : 'workout';
+  newPlan.sent_count = 0;
+  plans.unshift(newPlan);
   $('tplName').value = '';
   renderPlans();
   toast('برنامه ساخته شد');
@@ -86,13 +101,17 @@ $('tplForm').addEventListener('submit', async (e) => {
 async function deletePlan(p) {
   if (!confirm(`آیا می‌خواهید برنامه «${p.name}» را حذف کنید؟`)) return;
 
-  const result = await apiFetch(`/workouts/programs/${p.id}`, { method: 'DELETE' });
+  const path = p._kind === 'diet'
+    ? `/diet/plans/${p.id}`
+    : `/workouts/programs/${p.id}`;
+
+  const result = await apiFetch(path, { method: 'DELETE' });
   if (!result || !result.ok) {
     toast(result?.data?.error || 'خطا در حذف برنامه.');
     return;
   }
 
-  plans = plans.filter((x) => x.id !== p.id);
+  plans = plans.filter((x) => !(x.id === p.id && x._kind === p._kind));
   renderPlans();
   toast('برنامه حذف شد.');
 }
@@ -105,7 +124,7 @@ function openSend(p) {
   list.innerHTML = '';
 
   if (!athletes.length) {
-    list.appendChild(el('p', 'muted', 'هنوز ورزشکاری ندارید. ابتدا برنامه‌ای به ورزشکاری اختصاص دهید یا از طریق لینک دعوت کنید.'));
+    list.appendChild(el('p', 'muted', 'هنوز ورزشکاری ندارید.'));
     $('sendDlg').showModal();
     return;
   }
@@ -133,7 +152,11 @@ $('sendGo').addEventListener('click', async () => {
   const athleteId = r.value;
   const athlete   = athletes.find((x) => String(x.id) === String(athleteId));
 
-  const result = await apiFetch(`/workouts/programs/${sendPlan.id}/assign`, {
+  const path = sendPlan._kind === 'diet'
+    ? `/diet/plans/${sendPlan.id}/assign`
+    : `/workouts/programs/${sendPlan.id}/assign`;
+
+  const result = await apiFetch(path, {
     method: 'POST',
     body: JSON.stringify({ athlete_id: athleteId }),
   });
@@ -145,8 +168,7 @@ $('sendGo').addEventListener('click', async () => {
     return;
   }
 
-  // Update sent count locally
-  const plan = plans.find((x) => x.id === sendPlan.id);
+  const plan = plans.find((x) => x.id === sendPlan.id && x._kind === sendPlan._kind);
   if (plan) plan.sent_count = (plan.sent_count || 0) + 1;
   renderPlans();
 
@@ -158,11 +180,24 @@ $('sendGo').addEventListener('click', async () => {
 async function init() {
   if (!requireAuth()) return;
 
-  // Load programs
-  const progResult = await apiFetch('/workouts/programs');
-  if (progResult && progResult.ok) {
-    plans = progResult.data.programs || [];
+  // Load workout programs
+  const workoutResult = await apiFetch('/workouts/programs');
+  if (workoutResult && workoutResult.ok) {
+    (workoutResult.data.programs || []).forEach((p) => {
+      p._kind = 'workout';
+      plans.push(p);
+    });
   }
+
+  // Load diet plans
+  const dietResult = await apiFetch('/diet/plans');
+  if (dietResult && dietResult.ok) {
+    (dietResult.data.plans || []).forEach((p) => {
+      p._kind = 'diet';
+      plans.push(p);
+    });
+  }
+
   renderPlans();
 
   // Load athletes for send dialog
