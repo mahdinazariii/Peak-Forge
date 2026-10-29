@@ -155,6 +155,12 @@ router.post('/plans/:id/assign', authMiddleware, async (req, res) => {
       [req.params.id, athlete_id]
     );
 
+    // Link coach-athlete so the athlete shows up in chat/contacts
+    await dbAsync.run(
+      `INSERT OR IGNORE INTO coach_athletes (coach_id, athlete_id) VALUES (?, ?)`,
+      [req.user.id, athlete_id]
+    );
+
     const athlete = await dbAsync.get(
       'SELECT first_name, last_name FROM users WHERE id = ?', [athlete_id]
     );

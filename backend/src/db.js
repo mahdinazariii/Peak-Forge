@@ -193,6 +193,36 @@ async function initDb() {
     )
   `);
 
+  // Forums (group chat rooms owned by a coach; members = his linked athletes)
+  await dbAsync.run(`
+    CREATE TABLE IF NOT EXISTS forums (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      coach_id   INTEGER NOT NULL,
+      name       TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(coach_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Messages: DMs (receiver_id set, forum_id NULL) or forum posts (forum_id set)
+  await dbAsync.run(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      sender_id   INTEGER NOT NULL,
+      receiver_id INTEGER,
+      forum_id    INTEGER,
+      text        TEXT NOT NULL,
+      is_priority INTEGER DEFAULT 0,
+      is_read     INTEGER DEFAULT 0,
+      answered    INTEGER DEFAULT 0,
+      created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+      CHECK(receiver_id IS NOT NULL OR forum_id IS NOT NULL),
+      FOREIGN KEY(sender_id)   REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY(receiver_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY(forum_id)    REFERENCES forums(id) ON DELETE CASCADE
+    )
+  `);
+
   console.log('Database tables verified/initialized.');
 }
 

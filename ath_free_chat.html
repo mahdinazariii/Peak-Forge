@@ -28,31 +28,12 @@
         <div class="peer">
           <div class="avatar">ع</div>
           <div>
-            <div class="peer-name">مربی علی رضایی</div>
-            <div class="peer-status">آنلاین</div>
+            <div class="peer-name" id="coachPeerName">مربی من</div>
+            <div class="peer-status" id="coachPeerStatus">در حال بارگذاری…</div>
           </div>
         </div>
 
-        <div class="messages" id="coachMessages">
-          <div class="day">امروز</div>
-          <div class="msg in">
-            سلام! برنامه‌ی این هفته رو گذاشتم، ببین سؤالی داشتی بپرس.<span
-              class="time"
-              >۹:۱۰</span
-            >
-          </div>
-          <div class="msg out">
-            سلام مربی، ممنون. تمرین سه‌شنبه رو می‌تونم بذارم برای چهارشنبه؟<span
-              class="time"
-              >۹:۱۶</span
-            >
-          </div>
-          <div class="msg in">
-            مشکلی نیست، فقط روز استراحتت رو جابه‌جا کن.<span class="time"
-              >۹:۲۰</span
-            >
-          </div>
-        </div>
+        <div class="messages" id="coachMessages"></div>
 
         <form class="composer" data-list="coachMessages" data-priority="true">
           <button
@@ -77,25 +58,12 @@
         <div class="peer">
           <div class="avatar group">گ</div>
           <div>
-            <div class="peer-name">گروه ورزشکاران مربی علی</div>
-            <div class="peer-status">۱۲ عضو · تحت نظر مربی</div>
+            <div class="peer-name">تالار گفت‌وگو</div>
+            <select id="forumSelect" class="forum-select" aria-label="انتخاب تالار"></select>
           </div>
         </div>
 
-        <div class="messages" id="forumMessages">
-          <div class="day">امروز</div>
-          <div class="msg in coach-msg">
-            <span class="sender">مربی علی · مربی</span>یادتون نره امروز ثبت وزن
-            و رکوردها فراموش نشه.<span class="time">۸:۰۰</span>
-          </div>
-          <div class="msg in">
-            <span class="sender">سارا</span>رکورد جدید ددلیفتم ثبت شد! ۸۵ کیلو
-            💪<span class="time">۱۰:۳۲</span>
-          </div>
-          <div class="msg out">
-            تبریک سارا، عالیه!<span class="time">۱۰:۳۵</span>
-          </div>
-        </div>
+        <div class="messages" id="forumMessages"></div>
 
         <form class="composer" data-list="forumMessages">
           <input
@@ -131,6 +99,7 @@
         </a>
       </div>
     </div>
+    <script src="./api.js"></script>
     <script src="./ath_free_common.js"></script>
     <script src="./ath_free_chat.js"></script>
   </body>

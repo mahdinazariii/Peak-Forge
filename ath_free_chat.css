@@ -273,3 +273,27 @@ body {
     transition: none !important;
   }
 }
+
+/* Forum selector inside the forum panel header */
+.forum-select {
+  margin-top: 0.25rem;
+  max-width: 14rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--surface);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--white);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.forum-select:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 1px;
+}
+
+.empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 2rem 1rem;
+}
