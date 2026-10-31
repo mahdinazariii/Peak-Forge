@@ -41,10 +41,12 @@ dialog whose "خرید اشتراک" action flips the account tier (simulated pa
 
 ```
 Peak-Forge/
-├── api.js                  # shared frontend helper (JWT fetch wrapper, auth guards, logout)
-├── ath_*.html/js/css       # athlete pages  (free = *_free_*, premium = *_pre_*)
-├── coach_*.html/js/css     # coach pages    (same convention)
-├── *_common.js             # per-role shared helpers + premium-lock dialogs
+├── *.html                  # صفحه‌ها در ریشه (ath_* = ورزشکار، coach_* = مربی،
+│                           #  *_free_* = پلن رایگان، *_pre_* = پرمیوم)
+├── css/                    # همه‌ی استایل‌ها (یک فایل برای هر صفحه + base/common)
+├── js/                     # همه‌ی اسکریپت‌ها (api.js مشترک، *_common.js کمک‌کار نقش‌ها)
+├── icons/                  # آیکون‌های ناوبری
+├── docs/                   # user stories، قرارداد API، نمودارهای طراحی، پروتوتایپ
 └── backend/
     └── src/
         ├── server.js       # Express bootstrap, mounts /api/* and serves ../ statically
@@ -53,7 +55,7 @@ Peak-Forge/
         ├── middleware/
         │   └── auth.js     # JWT sign/verify middleware
         └── routes/
-            ├── auth.js     # signup / login
+            ├── auth.js     # signup / login / forgot / reset
             ├── profile.js  # profile CRUD, weight/body-fat logs, personal records,
             │               # analytics (7-day adherence, measurement series, streak),
             │               # gamification state (GET /game), tier upgrade
@@ -63,7 +65,8 @@ Peak-Forge/
             ├── chat.js     # conversations, direct messages, group forums, unread,
             │               # priority messages with answered-flow
             └── coach.js    # athlete dashboard (adherence, weight delta, records),
-                            # add-by-email with free-tier cap, category tagging
+                            # add-by-email with free-tier cap, category tagging,
+                            # settings, weekly schedule, honors
 ```
 
 ### Database schema (main tables)
