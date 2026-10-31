@@ -114,6 +114,7 @@ record, 100 ticks) are computed on demand.
 - [User stories and acceptance criteria](docs/user-stories.md)
 - [API contract](docs/api.md)
 - [Design views (Use Case, Activity, Architecture, ERD) + hosting rationale](docs/design.md)
+- [Clickable prototype](docs/prototype.html) — سفر اصلی با حالت‌های موفق/خطا (شبیه‌ساز خطا بالا-چپ فریم)
 
 ## Testing
 

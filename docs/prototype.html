@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Peak-Forge — پروتوتایپ کلیک‌شده</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet" />
+<style>
+  :root { --red:#f97316; --black:#181818; --surface:#242424; --white:#fffcd4; --muted:#9a9a8f; --green:#22c55e; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#0d0d0d; color:var(--white); font-family:"Vazirmatn",Tahoma,sans-serif;
+         display:flex; flex-direction:column; align-items:center; gap:1rem; padding:2rem 1rem; }
+  h1 { font-size:1.1rem; margin:0; color:var(--muted); font-weight:400; }
+  .frame { width:390px; height:780px; background:var(--black); border:6px solid #000;
+           border-radius:2.2rem; overflow:hidden; position:relative; box-shadow:0 20px 60px rgba(0,0,0,.6); }
+  .screen { position:absolute; inset:0; display:none; flex-direction:column; padding:1.2rem 1rem 5rem; overflow-y:auto; }
+  .screen.active { display:flex; }
+  .card { background:var(--surface); border-radius:1rem; padding:1rem; margin-bottom:.8rem; }
+  .muted { color:var(--muted); font-size:.8rem; }
+  .btn { display:block; width:100%; border:0; border-radius:.9rem; background:var(--red); color:var(--black);
+         font:inherit; font-weight:800; padding:.85rem; cursor:pointer; margin-top:.6rem; }
+  .btn.ghost { background:transparent; color:var(--white); border:1px solid #3a3a3a; font-weight:600; }
+  input { width:100%; background:var(--black); border:1px solid #3a3a3a; border-radius:.7rem;
+          color:var(--white); font:inherit; padding:.7rem; margin:.3rem 0 .8rem; }
+  label { font-size:.78rem; color:var(--muted); display:block; }
+  .bottom { position:absolute; bottom:0; right:0; left:0; background:var(--red); display:flex; padding:.5rem .8rem; gap:.4rem; }
+  .bottom span { flex:1; text-align:center; font-size:.72rem; font-weight:700; color:var(--black);
+                 background:rgba(0,0,0,.18); border-radius:.7rem; padding:.45rem 0; cursor:pointer; }
+  .bottom span.on { background:var(--white); }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:.6rem; }
+  .bar { background:#151515; border-radius:99px; height:8px; overflow:hidden; margin-top:.5rem; }
+  .bar i { display:block; height:100%; background:var(--red); width:0%; transition:width .4s; }
+  .item { display:flex; gap:.6rem; align-items:center; background:var(--surface); border-radius:.8rem; padding:.7rem .8rem; margin-bottom:.5rem; cursor:pointer; }
+  .item input { width:18px; height:18px; margin:0; accent-color:var(--red); }
+  .item small { color:var(--muted); display:block; font-size:.72rem; }
+  .item.done { opacity:.55; text-decoration:line-through; }
+  .toast { position:absolute; bottom:4.6rem; left:50%; transform:translateX(-50%); background:var(--green);
+           color:#06220e; font-weight:700; padding:.6rem 1.1rem; border-radius:.8rem; z-index:9; white-space:nowrap; }
+  .toast.err { background:#ef4444; color:#2b0505; }
+  .banner { background:#7f1d1d; color:#fecaca; border-radius:.8rem; padding:.7rem .9rem; font-size:.82rem; margin-bottom:.8rem; display:none; }
+  .banner.show { display:block; }
+  .chip { position:absolute; top:.7rem; left:.7rem; z-index:10; border:1px dashed var(--muted); color:var(--muted);
+          background:rgba(0,0,0,.5); border-radius:99px; padding:.3rem .7rem; font-size:.72rem; cursor:pointer; }
+  .chip.on { color:#fecaca; border-color:#ef4444; }
+  .ring { width:120px; height:120px; margin:0 auto; }
+  .daychips { display:flex; gap:.35rem; margin-bottom:.8rem; }
+  .daychips b { flex:1; text-align:center; background:var(--surface); border-radius:.6rem; padding:.5rem 0; cursor:pointer; font-weight:600; }
+  .daychips b.on { background:var(--red); color:var(--black); }
+  .avatar { width:44px; height:44px; border-radius:50%; background:var(--red); color:var(--black);
+            display:flex; align-items:center; justify-content:center; font-weight:800; }
+  .steps { font-size:.85rem; color:var(--muted); margin:0 0 1rem; padding-inline-start:1.1rem; }
+  .note { font-size:.75rem; color:var(--muted); max-width:390px; text-align:center; line-height:1.7; }
+</style>
+</head>
+<body>
+<h1>پروتوتایپ کلیک‌شده — سفر اصلی Peak-Forge</h1>
+
+<div class="frame" id="frame">
+  <button class="chip" id="errToggle" title="برای دیدن حالت‌های خطا">شبیه‌سازی خطا: خاموش</button>
+
+  <!-- ۱) ورود -->
+  <section class="screen active" id="s-login">
+    <h2 style="margin:.4rem 0 0">◆ Peak-Forge</h2>
+    <p class="muted" style="margin-top:0">تمرین، تغذیه و پیشرفت، در کنار مربی شما</p>
+    <div class="banner" id="loginErr">❌ ایمیل یا رمز عبور اشتباه است.</div>
+    <div class="card">
+      <label>ایمیل<input value="smoke.ath@pf.ir" dir="ltr" /></label>
+      <label>رمز عبور<input value="••••••" dir="ltr" /></label>
+      <button class="btn" onclick="doLogin()">ورود</button>
+      <button class="btn ghost" onclick="go('s-coach')">ورود به‌عنوان مربی (نمونه)</button>
+    </div>
+    <p class="muted">حالت‌ها: ورود موفق → داشبورد ورزشکار · ورود با خطا → پیام قرمز بالا</p>
+  </section>
+
+  <!-- ۲) داشبورد ورزشکار -->
+  <section class="screen" id="s-dash">
+    <div class="row"><div class="avatar">س</div><div><strong>سارا محمدی</strong><div class="muted">Premium</div></div></div>
+    <div class="card">
+      <div class="row"><strong>برنامه‌ی امروز</strong><span class="muted">شنبه · سینه و پشت بازو</span></div>
+      <div class="bar"><i id="dashBar" style="width:25%"></i></div>
+      <p class="muted" id="dashTxt">۲۵٪ تمرین امروز انجام شده</p>
+    </div>
+    <div class="card">
+      <div class="row"><strong>پایبندی هفته</strong><span class="muted">۸۰٪</span></div>
+      <div class="bar"><i style="width:80%"></i></div>
+    </div>
+    <button class="btn" onclick="go('s-exercise')">رفتن به تمرین امروز</button>
+    <div class="bottom"><span>چت</span><span class="on">تمرین</span><span>تغذیه</span><span>پروفایل</span></div>
+  </section>
+
+  <!-- ۳) صفحه تمرین + ۴) موفق/خطا -->
+  <section class="screen" id="s-exercise">
+    <h2 style="font-size:1.05rem">تمرین امروز</h2>
+    <div class="banner" id="tickErr">❌ خطای سرور — تیک ثبت نشد. دوباره تلاش کن.</div>
+    <div class="daychips" id="days"></div>
+    <div class="card" style="text-align:center">
+      <svg class="ring" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="52" fill="none" stroke="#151515" stroke-width="10"/>
+        <circle id="ringFill" cx="60" cy="60" r="52" fill="none" stroke="#f97316" stroke-width="10"
+                stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="245" transform="rotate(-90 60 60)"/>
+        <text id="ringPct" x="60" y="68" text-anchor="middle" fill="#fffcd4" font-size="22" font-weight="800">۲۵٪</text>
+      </svg>
+      <p class="muted" style="margin:.3rem 0 0">۱ از ۴ حرکت انجام شده</p>
+    </div>
+    <div id="exList"></div>
+    <div class="bottom"><span>چت</span><span class="on" onclick="go('s-dash')">برگشت به داشبورد</span><span>تغذیه</span><span>پروفایل</span></div>
+  </section>
+
+  <!-- ۵) پنل مربی + یادآوری -->
+  <section class="screen" id="s-coach">
+    <div class="row"><div class="avatar">ع</div><div><strong>علی رضایی</strong><div class="muted">مربی · Premium</div></div></div>
+    <div class="card">
+      <strong>هشدارها <span class="muted">(۱)</span></strong>
+      <div class="row" style="margin-top:.5rem">
+        <span class="muted">سارا محمدی · ۱ روز بی‌فعالیتی</span>
+        <button class="btn ghost" style="width:auto;margin:0;padding:.4rem .8rem" onclick="remind(this)">یادآوری</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row"><strong>سارا محمدی</strong><span class="muted">۸۰٪</span></div>
+      <div class="bar"><i style="width:80%"></i></div>
+    </div>
+    <div class="card">
+      <div class="row"><strong>نگار رستمی</strong><span class="muted">۴۵٪</span></div>
+      <div class="bar"><i style="width:45%"></i></div>
+    </div>
+    <button class="btn ghost" onclick="go('s-login')">خروج → صفحه‌ی ورود</button>
+    <div class="bottom"><span class="on">ورزشکاران</span><span>چت</span><span>برنامه‌ها</span><span>پروفایل</span></div>
+  </section>
+</div>
+
+<p class="note">مسیرها: ورود (موفق/خطا) → داشبورد ورزشکار → تمرین → تیک (موفق/خطا) → پنل مربی → یادآوری.
+دکمه‌ی «شبیه‌سازی خطا» بالا-چپ، حالت‌های خطا را فعال می‌کند. داده‌ها نمونه‌اند و به بک‌اند وصل نیستند.</p>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let simError = false;
+let ticked = { p1: true };
+const EXS = [
+  { id:"p1", name:"پرس سینه هالتر", meta:"۴ × ۱۰" },
+  { id:"p2", name:"پرس بالا سینه دمبل", meta:"۳ × ۱۲" },
+  { id:"p3", name:"دیپ", meta:"۳ × ۱۰" },
+  { id:"p4", name:"پشت بازو سیم‌کش", meta:"۳ × ۱۲" },
+];
+const DAYS = ["ش","ی","د","س","چ","پ","ج"];
+
+function go(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  $(id).classList.add("active");
+  if (id === "s-exercise") renderEx();
+}
+function toast(msg, err) {
+  const t = document.createElement("div");
+  t.className = "toast" + (err ? " err" : "");
+  t.textContent = msg;
+  $("frame").appendChild(t);
+  setTimeout(() => t.remove(), 1800);
+}
+function doLogin() {
+  if (simError) { $("loginErr").classList.add("show"); toast("ورود ناموفق", true); return; }
+  $("loginErr").classList.remove("show");
+  go("s-dash");
+}
+function remind(btn) {
+  if (simError) { toast("ارسال یادآوری ناموفق", true); return; }
+  btn.textContent = "ارسال شد";
+  btn.disabled = true;
+  toast("یادآوری به چت شاگرد ارسال شد");
+}
+function renderEx() {
+  $("days").innerHTML = DAYS.map((d, i) => `<b class="${i === 0 ? "on" : ""}">${d}</b>`).join("");
+  const list = $("exList");
+  list.innerHTML = "";
+  EXS.forEach(ex => {
+    const done = !!ticked[ex.id];
+    const row = document.createElement("div");
+    row.className = "item" + (done ? " done" : "");
+    row.innerHTML = `<input type="checkbox" ${done ? "checked" : ""} />
+      <div><strong>${ex.name}</strong><small>${ex.meta} · استراحت ۹۰ ثانیه</small></div>`;
+    row.querySelector("input").addEventListener("change", () => toggle(ex.id));
+    list.appendChild(row);
+  });
+  updateRing();
+}
+function toggle(id) {
+  if (simError) { toast("ثبت تیک ناموفق — داده ذخیره نشد", true); renderEx(); return; }
+  ticked[id] = !ticked[id];
+  const n = Object.values(ticked).filter(Boolean).length;
+  toast(n > (ticked[id] ? n : n) && ticked[id] ? "تیک ثبت شد ✅ (+۱۰ XP)" : "تیک برداشته شد");
+  renderEx();
+}
+function updateRing() {
+  const done = Object.values(ticked).filter(Boolean).length;
+  const pct = Math.round((done / EXS.length) * 100);
+  const C = 2 * Math.PI * 52;
+  $("ringFill").style.strokeDashoffset = C * (1 - pct / 100);
+  $("ringPct").textContent = pct.toLocaleString("fa-IR") + "٪";
+  $("dashBar").style.width = pct + "%";
+  $("dashTxt").textContent = pct.toLocaleString("fa-IR") + "٪ تمرین امروز انجام شده";
+}
+$("errToggle").addEventListener("click", () => {
+  simError = !simError;
+  $("errToggle").textContent = "شبیه‌سازی خطا: " + (simError ? "روشن" : "خاموش");
+  $("errToggle").classList.toggle("on", simError);
+});
+renderEx();
+</script>
+</body>
+</html>
