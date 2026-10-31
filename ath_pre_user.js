@@ -28,17 +28,10 @@ let profile = {
   city: "",
   country: "",
 };
-// gamification has no backend tables yet — kept as local demo data
-const game = { level: 7, xp: 640, xpNext: 1000, coins: 230, rank: 5 };
-const medals = [
-  { t: "مدال طلا — مسابقات پرس سینه", s: "باشگاه‌های تهران · ۱۴۰۳" },
-  { t: "مدال نقره — ددلیفت", s: "جام دانشجویی · ۱۴۰۲" },
-  { t: "عنوان سوم — کراس‌فیت تیمی", s: "لیگ شهری · ۱۴۰۲" },
-];
 const badges = [
-  { t: "۷ روز پیاپی", on: true },
+  { t: "۷ روز پیاپی", on: false },
   { t: "۳۰ روز پیاپی", on: false },
-  { t: "اولین رکورد", on: true },
+  { t: "اولین رکورد", on: false },
   { t: "۱۰۰ تمرین", on: false },
 ];
 
@@ -107,15 +100,15 @@ function renderProfile() {
   $("sYears").textContent = profile.years != null ? fa(profile.years) : "—";
 }
 
-function renderGame(streak) {
+function renderGame(game) {
   $("level").textContent = fa(game.level);
-  $("xpText").textContent = `${fa(game.xp)} / ${fa(game.xpNext)} XP`;
-  $("xpBar").style.width = (game.xp / game.xpNext) * 100 + "%";
-  $("streak").textContent = fa(streak ?? 0);
+  $("xpText").textContent = `${fa(game.xp_into_level)} / ${fa(game.xp_per_level)} XP`;
+  $("xpBar").style.width = (game.xp_into_level / game.xp_per_level) * 100 + "%";
+  $("streak").textContent = fa(game.streak);
   $("coins").textContent = fa(game.coins);
   $("rank").textContent = fa(game.rank);
   $("badges").innerHTML = "";
-  badges.forEach((b) => {
+  (game.badges || badges).forEach((b) => {
     const chip = document.createElement("span");
     chip.className = "chip" + (b.on ? " on" : "");
     chip.textContent = (b.on ? "✓ " : "قفل · ") + b.t;
@@ -123,13 +116,20 @@ function renderGame(streak) {
   });
 }
 
-function renderMedals() {
+function renderMedals(game) {
   $("medals").innerHTML = "";
-  medals.forEach((m) => {
+  const earned = (game.badges || []).filter((b) => b.on);
+  if (!earned.length) {
+    const li = document.createElement("li");
+    li.textContent = "با تیک زدن تمرین‌ها و ثبت رکورد، اولین نشان‌هایت را بگیر!";
+    $("medals").appendChild(li);
+    return;
+  }
+  earned.forEach((b) => {
     const li = document.createElement("li");
     li.innerHTML = `<strong></strong><small></small>`;
-    li.querySelector("strong").textContent = m.t;
-    li.querySelector("small").textContent = m.s;
+    li.querySelector("strong").textContent = `🥇 نشان «${b.t}»`;
+    li.querySelector("small").textContent = "به دست آوردی — ادامه بده!";
     $("medals").appendChild(li);
   });
 }
@@ -268,7 +268,6 @@ $("reportBtn").addEventListener("click", () => window.print());
   const an = await apiFetch("/profile/analytics");
   if (an && an.ok) {
     renderSeries(an.data.weight_series || []);
-    renderGame(an.data.totals.streak);
     renderRecords(an.data.records || []);
     renderReport(an.data);
     // fall back to the latest measurement if profile weight is unset
@@ -278,9 +277,15 @@ $("reportBtn").addEventListener("click", () => window.print());
       renderProfile();
       fillForm();
     }
-  } else {
-    renderGame(0);
   }
 
-  renderMedals();
+  // gamification from the backend
+  const g = await apiFetch("/profile/game");
+  if (g && g.ok) {
+    renderGame(g.data);
+    renderMedals(g.data);
+  } else {
+    renderGame({ level: 1, xp_into_level: 0, xp_per_level: 500, streak: 0, coins: 0, rank: 1, badges: [] });
+    renderMedals({ badges: [] });
+  }
 })();

@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { dbAsync } = require('../db');
 const { generateToken, authMiddleware } = require('../middleware/auth');
@@ -171,6 +172,83 @@ router.get('/me', authMiddleware, async (req, res) => {
     });
   } catch (err) {
     console.error('Me error:', err);
+    return res.status(500).json({ error: 'خطای سرور.' });
+  }
+});
+
+// ── Password reset (simulated email: the code is returned in the response) ───
+
+// POST /api/auth/forgot { email } → issues a 6-digit code valid for 10 minutes
+router.post('/forgot', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email || !String(email).trim()) {
+      return res.status(400).json({ error: 'ایمیل الزامی است.' });
+    }
+    const cleanEmail = String(email).trim().toLowerCase();
+    const user = await dbAsync.get('SELECT id FROM users WHERE email = ?', [cleanEmail]);
+
+    // Generic answer for unknown emails (no account enumeration)
+    if (!user) {
+      return res.json({
+        message: 'اگر این ایمیل در سیستم ثبت شده باشد، کد بازیابی ارسال شده است.',
+      });
+    }
+
+    const code = String(crypto.randomInt(100000, 1000000));
+    const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    await dbAsync.run(
+      'UPDATE users SET reset_code = ?, reset_expires = ? WHERE id = ?',
+      [code, expires, user.id]
+    );
+
+    // No email gateway in this project — the code is "delivered" in the response
+    return res.json({
+      message: 'کد بازیابی ارسال شد. (شبیه‌سازی ایمیل — کد در همین پاسخ آمده است)',
+      reset_code: code,
+      expires_in_minutes: 10,
+    });
+  } catch (err) {
+    console.error('Forgot error:', err);
+    return res.status(500).json({ error: 'خطای سرور.' });
+  }
+});
+
+// POST /api/auth/reset { email, code, new_password } → sets the new password
+router.post('/reset', async (req, res) => {
+  try {
+    const { email, code, new_password } = req.body;
+    if (!email || !code || !new_password) {
+      return res.status(400).json({ error: 'همه‌ی فیلدها الزامی است.' });
+    }
+    if (String(new_password).length < 6) {
+      return res.status(400).json({ error: 'رمز عبور باید حداقل ۶ کاراکتر باشد.' });
+    }
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    const user = await dbAsync.get(
+      'SELECT id, reset_code, reset_expires FROM users WHERE email = ?',
+      [cleanEmail]
+    );
+    if (!user || !user.reset_code) {
+      return res.status(400).json({ error: 'کد بازیابی معتبر نیست. دوباره درخواست بده.' });
+    }
+    if (String(user.reset_code) !== String(code).trim()) {
+      return res.status(400).json({ error: 'کد بازیابی اشتباه است.' });
+    }
+    if (new Date(user.reset_expires).getTime() < Date.now()) {
+      return res.status(400).json({ error: 'کد بازیابی منقضی شده است. دوباره درخواست بده.' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(String(new_password), salt);
+    await dbAsync.run(
+      'UPDATE users SET password_hash = ?, reset_code = NULL, reset_expires = NULL WHERE id = ?',
+      [passwordHash, user.id]
+    );
+    return res.json({ message: 'رمز عبور با موفقیت عوض شد. حالا وارد شو.' });
+  } catch (err) {
+    console.error('Reset error:', err);
     return res.status(500).json({ error: 'خطای سرور.' });
   }
 });

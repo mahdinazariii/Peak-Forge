@@ -83,9 +83,73 @@ const toast = (msg) => {
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 2200);
 };
+// ── Forgot password (simulated email: the code is shown in the dialog) ───────
+let forgotEmail = "";
+
 $("forgot").addEventListener("click", (e) => {
   e.preventDefault();
-  toast("لینک بازیابی رمز به ایمیل شما ارسال می‌شود (نیازمند بک‌اند)");
+  $("forgotForm").querySelectorAll("[data-step]").forEach((d) => {
+    d.hidden = d.dataset.step !== "1";
+  });
+  $("forgotDlg").showModal();
+});
+$("forgotClose").addEventListener("click", () => $("forgotDlg").close());
+
+$("forgotForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const step1Visible = !$("forgotForm").querySelector('[data-step="1"]').hidden;
+
+  // step 1: request the reset code
+  if (step1Visible) {
+    const email = $("fgEmail").value.trim();
+    if (!email) return;
+    const res = await fetch("/api/auth/forgot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast(data.error || "خطا در ارسال کد");
+      return;
+    }
+    forgotEmail = email;
+    if (data.reset_code) {
+      $("fgCodeNote").textContent =
+        `کد بازیابی (شبیه‌سازی ایمیل): ${data.reset_code} — تا ۱۰ دقیقه معتبر است.`;
+    } else {
+      $("fgCodeNote").textContent =
+        "اگر ایمیل در سیستم ثبت شده باشد کد صادر شده است.";
+    }
+    $("forgotForm").querySelector('[data-step="1"]').hidden = true;
+    $("forgotForm").querySelector('[data-step="2"]').hidden = false;
+    $("fgCode").focus();
+    return;
+  }
+
+  // step 2: verify the code and set the new password
+  const code = $("fgCode").value.trim();
+  const newPass = $("fgPass").value;
+  if (!code || !newPass) return;
+  const res = await fetch("/api/auth/reset", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: forgotEmail, code, new_password: newPass }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    toast(data.error || "خطا در تغییر رمز");
+    return;
+  }
+  $("forgotForm").querySelector('[data-step="2"]').hidden = true;
+  $("forgotForm").querySelector('[data-step="3"]').hidden = false;
+});
+
+$("fgDone").addEventListener("click", () => {
+  $("forgotDlg").close();
+  $("fgEmail").value = "";
+  $("fgCode").value = "";
+  $("fgPass").value = "";
 });
 
 const loginForm = $("loginForm");

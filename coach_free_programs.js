@@ -39,6 +39,7 @@ function renderPlans() {
     );
 
     const act = el('div', 'tpl-actions');
+    const content = el('button', 'btn ghost', 'محتوا');
     const send  = el('button', 'btn',       'ارسال به ورزشکار');
     const group = el('button', 'lock-mini', '🔒 ارسال گروهی');
     const copy  = el('button', 'lock-mini', '🔒 کپی و شخصی‌سازی');
@@ -47,12 +48,13 @@ function renderPlans() {
     group.dataset.premium = 'ارسال گروهی برنامه';
     copy.dataset.premium  = 'کپی و شخصی‌سازی برنامه';
 
-    [send, group, copy, del].forEach((b) => (b.type = 'button'));
+    [content, send, group, copy, del].forEach((b) => (b.type = 'button'));
 
+    content.addEventListener('click', () => openContent(p));
     send.addEventListener('click', () => openSend(p));
     del.addEventListener('click',  () => deletePlan(p));
 
-    act.append(send, group, copy, del);
+    act.append(content, send, group, copy, del);
     c.append(top, meta, act);
     box.appendChild(c);
   });
@@ -115,6 +117,129 @@ async function deletePlan(p) {
   renderPlans();
   toast('برنامه حذف شد.');
 }
+
+// ── Content Editor (exercises / meals) ────────────────────────────────────────
+const DAY_NAMES_FA = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه'];
+let contentPlan = null;
+
+DAY_NAMES_FA.forEach((d, i) => {
+  const o = el('option', null, d);
+  o.value = i;
+  $('cDay').appendChild(o);
+});
+
+async function openContent(p) {
+  contentPlan = p;
+  const isDiet = p._kind === 'diet';
+  $('contentTitle').textContent = `محتوای «${p.name}»`;
+  $('contentSub').textContent = isDiet
+    ? 'وعده‌های برنامه‌ی غذایی را مدیریت کنید'
+    : 'حرکات برنامه‌ی تمرینی را مدیریت کنید';
+
+  // show/hide fields per plan kind
+  $('cDayWrap').hidden   = isDiet;
+  $('cSetsWrap').hidden  = isDiet;
+  $('cRestWrap').hidden  = isDiet;
+  $('cTimeWrap').hidden  = !isDiet;
+  $('cKcalWrap').hidden  = !isDiet;
+  $('cItemsWrap').hidden = !isDiet;
+  $('cAltWrap').hidden   = !isDiet;
+
+  await renderContentList();
+  $('contentDlg').showModal();
+}
+
+async function renderContentList() {
+  const box = $('contentList');
+  box.innerHTML = '';
+  const isDiet = contentPlan._kind === 'diet';
+  const path = isDiet
+    ? `/diet/plans/${contentPlan.id}/meals`
+    : `/workouts/programs/${contentPlan.id}/exercises`;
+
+  const result = await apiFetch(path);
+  const items = (result && result.ok && (result.data.meals || result.data.exercises)) || [];
+
+  if (!items.length) {
+    box.appendChild(el('p', 'muted', isDiet ? 'هنوز وعده‌ای اضافه نشده.' : 'هنوز حرکتی اضافه نشده.'));
+    return;
+  }
+
+  items.forEach((item) => {
+    const row = el('div', 'content-row');
+    const txt = el('div', 'content-text');
+    if (isDiet) {
+      txt.append(
+        el('strong', null, `${item.name}${item.time ? ' · ' + item.time : ''}`),
+        el('small', null,
+          `${item.items || '—'}${item.kcal != null ? ' · ' + fa(item.kcal) + ' کیلوکالری' : ''}${item.alt ? ' · جایگزین: ' + item.alt : ''}`),
+      );
+    } else {
+      txt.append(
+        el('strong', null, item.name),
+        el('small', null,
+          `${item.sets || '—'}${item.rest ? ' · استراحت ' + item.rest : ''} · ${item.day_name || DAY_NAMES_FA[item.day_index] || ''}`),
+      );
+    }
+    const x = el('button', 'icon-btn', '✕');
+    x.type = 'button';
+    x.setAttribute('aria-label', 'حذف');
+    x.addEventListener('click', async () => {
+      const delPath = isDiet
+        ? `/diet/plans/${contentPlan.id}/meals/${item.id}`
+        : `/workouts/programs/${contentPlan.id}/exercises/${item.id}`;
+      const res = await apiFetch(delPath, { method: 'DELETE' });
+      if (res && res.ok) renderContentList();
+      else toast((res && res.data && res.data.error) || 'خطا در حذف');
+    });
+    row.append(txt, x);
+    box.appendChild(row);
+  });
+}
+
+$('contentForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!contentPlan) return;
+  const isDiet = contentPlan._kind === 'diet';
+  const name = $('cName').value.trim();
+  if (!name) return;
+
+  const path = isDiet
+    ? `/diet/plans/${contentPlan.id}/meals`
+    : `/workouts/programs/${contentPlan.id}/exercises`;
+
+  const body = isDiet
+    ? {
+        name,
+        time: $('cTime').value.trim(),
+        items: $('cItems').value.trim(),
+        kcal: $('cKcal').value === '' ? null : +$('cKcal').value,
+        alt: $('cAlt').value.trim(),
+      }
+    : {
+        name,
+        sets: $('cSets').value.trim(),
+        rest: $('cRest').value.trim(),
+        day_index: +$('cDay').value,
+        day_name: DAY_NAMES_FA[+$('cDay').value],
+      };
+
+  const res = await apiFetch(path, { method: 'POST', body: JSON.stringify(body) });
+  if (res && res.ok) {
+    $('cName').value = '';
+    $('cSets').value = '';
+    $('cRest').value = '';
+    $('cTime').value = '';
+    $('cItems').value = '';
+    $('cKcal').value = '';
+    $('cAlt').value = '';
+    toast(isDiet ? 'وعده اضافه شد' : 'حرکت اضافه شد');
+    await renderContentList();
+  } else {
+    toast((res && res.data && res.data.error) || 'خطا در افزودن');
+  }
+});
+$('contentClose').addEventListener('click', () => $('contentDlg').close());
 
 // ── Send Dialog ───────────────────────────────────────────────────────────────
 function openSend(p) {

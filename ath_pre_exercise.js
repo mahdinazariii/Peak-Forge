@@ -52,14 +52,97 @@ function renderWeek() {
 function item(e, onToggle) {
   const el = document.createElement("label");
   el.className = "item" + (logs[e.id] ? " done" : "");
-  el.innerHTML = `<input type="checkbox" /><span class="box"></span><div><strong></strong><small></small></div>`;
+  el.innerHTML = `<input type="checkbox" /><span class="box"></span><div><strong></strong><small></small></div><button type="button" class="btn-ghost sets-btn">جزئیات ست‌ها</button>`;
   el.querySelector("input").checked = !!logs[e.id];
   el.querySelector("strong").textContent = e.name;
   el.querySelector("small").textContent =
     `${e.sets || ""}${e.rest ? " · استراحت " + e.rest : ""}`;
   el.querySelector("input").addEventListener("change", onToggle);
+  el.querySelector(".sets-btn").addEventListener("click", (ev) => {
+    ev.preventDefault();
+    openSetsDialog(e);
+  });
   return el;
 }
+
+// ── Per-set details dialog ───────────────────────────────────────────────────
+let setsExercise = null;
+const $id = (id) => document.getElementById(id);
+
+function setRow(weight = "", reps = "") {
+  const row = document.createElement("div");
+  row.className = "set-row";
+  row.innerHTML = `
+    <span class="set-idx"></span>
+    <label>وزن (کیلوگرم)<input class="set-weight" type="number" min="0" step="0.5" inputmode="decimal" /></label>
+    <label>تکرار<input class="set-reps" type="number" min="0" step="1" inputmode="numeric" /></label>
+    <button type="button" class="set-del" aria-label="حذف ست">✕</button>`;
+  row.querySelector(".set-idx").textContent = "";
+  row.querySelector(".set-weight").value = weight;
+  row.querySelector(".set-reps").value = reps;
+  row.querySelector(".set-del").addEventListener("click", () => {
+    row.remove();
+    renumberSets();
+  });
+  return row;
+}
+
+function renumberSets() {
+  [...$id("setsList").children].forEach((r, i) => {
+    r.querySelector(".set-idx").textContent = "ست " + fa(i + 1);
+  });
+}
+
+async function openSetsDialog(exercise) {
+  setsExercise = exercise;
+  $id("setsTitle").textContent = exercise.name;
+  $id("setsSub").textContent = "وزن و تکرار هر ست امروز را ثبت کن";
+  const list = $id("setsList");
+  list.innerHTML = "";
+
+  const res = await apiFetch(`/workouts/sets?exercise_id=${exercise.id}`);
+  const saved = res && res.ok ? res.data.sets : [];
+  if (saved.length) saved.forEach((s) => list.appendChild(setRow(s.weight ?? "", s.reps ?? "")));
+  else list.appendChild(setRow());
+
+  renumberSets();
+  $id("setsDlg").showModal();
+}
+
+$id("addSetBtn").addEventListener("click", () => {
+  $id("setsList").appendChild(setRow());
+  renumberSets();
+  const rows = $id("setsList").children;
+  rows[rows.length - 1].querySelector(".set-weight").focus();
+});
+
+$id("setsClose").addEventListener("click", () => $id("setsDlg").close());
+
+$id("saveSets").addEventListener("click", async () => {
+  if (!setsExercise) return;
+  const sets = [...$id("setsList").children].map((r) => ({
+    weight: r.querySelector(".set-weight").value,
+    reps: r.querySelector(".set-reps").value,
+  }));
+  const res = await apiFetch("/workouts/sets", {
+    method: "POST",
+    body: JSON.stringify({ exercise_id: setsExercise.id, sets }),
+  });
+  if (!res || !res.ok) {
+    alert((res && res.data && res.data.error) || "خطا در ثبت ست‌ها");
+    return;
+  }
+  // a logged set counts as training — tick the exercise if not done yet
+  if (!logs[setsExercise.id]) {
+    logs[setsExercise.id] = true;
+    await apiFetch("/workouts/log", {
+      method: "POST",
+      body: JSON.stringify({ exercise_id: setsExercise.id, done: true }),
+    });
+  }
+  $id("setsDlg").close();
+  render();
+});
 
 function renderDay() {
   const day = days[selected];

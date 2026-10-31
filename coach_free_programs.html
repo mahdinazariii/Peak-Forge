@@ -83,6 +83,32 @@
       </div>
     </dialog>
 
+    <dialog id="contentDlg">
+      <h2 id="contentTitle"></h2>
+      <p class="muted" id="contentSub"></p>
+      <div class="content-list" id="contentList"></div>
+      <form id="contentForm">
+        <div class="form-row">
+          <label class="field grow">نام<input id="cName" required /></label>
+          <label class="field" id="cDayWrap">روز<select id="cDay"></select></label>
+        </div>
+        <div class="form-row">
+          <label class="field" id="cSetsWrap">ست‌ها<input id="cSets" placeholder="مثلاً ۴ × ۱۰" /></label>
+          <label class="field" id="cRestWrap">استراحت<input id="cRest" placeholder="مثلاً ۹۰ ثانیه" /></label>
+          <label class="field" id="cTimeWrap">ساعت<input id="cTime" placeholder="مثلاً ۸:۰۰" /></label>
+          <label class="field" id="cKcalWrap">کالری<input id="cKcal" type="number" min="0" step="1" placeholder="اختیاری" /></label>
+        </div>
+        <div class="form-row">
+          <label class="field grow" id="cItemsWrap">موارد<input id="cItems" placeholder="مثلاً سینه مرغ، برنج، سالاد" /></label>
+          <label class="field grow" id="cAltWrap">جایگزین (اختیاری)<input id="cAlt" /></label>
+        </div>
+        <div class="form-row dlg-actions">
+          <button class="btn" type="submit">افزودن</button>
+          <button class="btn ghost" type="button" id="contentClose">بستن</button>
+        </div>
+      </form>
+    </dialog>
+
     <div class="footer">
       <div class="icon">
         <a href="./coach_free_chat.html"

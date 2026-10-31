@@ -1,6 +1,7 @@
 const express = require('express');
 const { dbAsync } = require('../db');
 const { authMiddleware } = require('../middleware/auth');
+const { addXp, XP, XP_PER_LEVEL } = require('../game');
 
 const router = express.Router();
 
@@ -134,6 +135,11 @@ router.post('/weight', authMiddleware, async (req, res) => {
     }
     const today = new Date().toISOString().slice(0, 10);
 
+    const existing = await dbAsync.get(
+      'SELECT id FROM weight_logs WHERE athlete_id = ? AND log_date = ?',
+      [req.user.id, today]
+    );
+
     await dbAsync.run(
       `INSERT INTO weight_logs (athlete_id, log_date, weight, body_fat)
        VALUES (?, ?, ?, ?)
@@ -149,6 +155,9 @@ router.post('/weight', authMiddleware, async (req, res) => {
         `UPDATE athlete_profiles SET weight = ? WHERE user_id = ?`,
         [w, req.user.id]
       );
+    }
+    if (!existing) {
+      await addXp(req.user.id, XP.WEIGHT_LOG);
     }
     return res.json({ message: 'ثبت شد.' });
   } catch (err) {
@@ -194,6 +203,7 @@ router.post('/records', authMiddleware, async (req, res) => {
       [req.user.id, String(exercise_name).trim(), w, parseInt(reps) || 1]
     );
     const record = await dbAsync.get('SELECT * FROM personal_records WHERE id = ?', [result.lastID]);
+    await addXp(req.user.id, XP.NEW_RECORD);
     return res.status(201).json({ message: 'رکورد ثبت شد.', record });
   } catch (err) {
     console.error('POST records error:', err);
@@ -329,6 +339,98 @@ router.get('/analytics', authMiddleware, async (req, res) => {
     });
   } catch (err) {
     console.error('GET analytics error:', err);
+    return res.status(500).json({ error: 'خطای سرور.' });
+  }
+});
+
+// GET /api/profile/game — athlete: gamification state (XP, level, coins,
+// rank among athletes, current streak and milestone badges)
+router.get('/game', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'athlete') {
+      return res.status(403).json({ error: 'دسترسی فقط برای ورزشکاران.' });
+    }
+    const row = await dbAsync.get('SELECT xp FROM athlete_game WHERE user_id = ?', [req.user.id]);
+    const xp = row?.xp || 0;
+    const level = Math.floor(xp / XP_PER_LEVEL) + 1;
+    const xpIntoLevel = xp - (level - 1) * XP_PER_LEVEL;
+    const coins = Math.floor(xp / 50);
+
+    const rankRow = await dbAsync.get(
+      `SELECT COUNT(*) + 1 AS rank FROM athlete_game g
+       JOIN users u ON u.id = g.user_id
+       WHERE u.role = 'athlete' AND g.xp > ?`,
+      [xp]
+    );
+
+    // current streak: consecutive days ending today/yesterday with ≥1 tick
+    const since7Iso = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10);
+    const active = await dbAsync.all(
+      `SELECT log_date FROM exercise_logs WHERE athlete_id = ? AND done = 1 AND log_date >= ?
+       UNION
+       SELECT log_date FROM meal_logs WHERE athlete_id = ? AND done = 1 AND log_date >= ?`,
+      [req.user.id, since7Iso, req.user.id, since7Iso]
+    );
+    const activeDates = new Set(active.map((r) => r.log_date));
+    let streak = 0;
+    const cursor = new Date();
+    if (!activeDates.has(cursor.toISOString().slice(0, 10))) cursor.setDate(cursor.getDate() - 1);
+    while (activeDates.has(cursor.toISOString().slice(0, 10))) {
+      streak += 1;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+
+    const recordsCount = (await dbAsync.get(
+      'SELECT COUNT(*) AS c FROM personal_records WHERE athlete_id = ?',
+      [req.user.id]
+    )).c;
+    const ticksRow = await dbAsync.get(
+      `SELECT
+         (SELECT COUNT(*) FROM exercise_logs WHERE athlete_id = ? AND done = 1) +
+         (SELECT COUNT(*) FROM meal_logs    WHERE athlete_id = ? AND done = 1) AS c`,
+      [req.user.id, req.user.id]
+    );
+    const totalDone = ticksRow?.c || 0;
+
+    const badges = [
+      { t: '۷ روز پیاپی', on: streak >= 7 },
+      { t: '۳۰ روز پیاپی', on: streak >= 30 },
+      { t: 'اولین رکورد', on: recordsCount > 0 },
+      { t: '۱۰۰ تمرین', on: totalDone >= 100 },
+    ];
+
+    return res.json({
+      xp,
+      level,
+      xp_into_level: xpIntoLevel,
+      xp_per_level: XP_PER_LEVEL,
+      coins,
+      rank: rankRow?.rank || 1,
+      streak,
+      total_done: totalDone,
+      badges,
+    });
+  } catch (err) {
+    console.error('GET game error:', err);
+    return res.status(500).json({ error: 'خطای سرور.' });
+  }
+});
+
+// POST /api/profile/upgrade — simulate purchasing the Premium subscription
+// (no real payment gateway in this project; flips the account tier)
+router.post('/upgrade', authMiddleware, async (req, res) => {
+  try {
+    await dbAsync.run(
+      `UPDATE users SET tier = 'premium' WHERE id = ?`,
+      [req.user.id]
+    );
+    const user = await dbAsync.get(
+      'SELECT id, email, role, tier, first_name, last_name FROM users WHERE id = ?',
+      [req.user.id]
+    );
+    return res.json({ message: 'اشتراک Premium فعال شد. خوش بیا! 🎉', user });
+  } catch (err) {
+    console.error('POST upgrade error:', err);
     return res.status(500).json({ error: 'خطای سرور.' });
   }
 });

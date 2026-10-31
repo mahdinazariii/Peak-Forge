@@ -9,16 +9,17 @@ let athletes = [];
 const DAYS = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"];
 const todayIdx = (new Date().getDay() + 1) % 7;
 
-// weekly send-schedule is stored locally (no backend table)
-let schedule = [];
-try {
-  schedule = JSON.parse(localStorage.getItem("pf_schedule") || "[]");
-} catch { schedule = []; }
-const saveSchedule = () => {
-  try { localStorage.setItem("pf_schedule", JSON.stringify(schedule)); } catch {}
+// weekly send-schedule persisted on the server (coach_schedule table)
+let schedule = []; // [{id, day_index, plan_kind, plan_id, target}]
+const tplName = (kind, id) => {
+  const t = templates.find((x) => x._kind === kind && String(x.id) === String(id));
+  return t ? t.name : "(حذف‌شده)";
 };
-const tplName = (id) =>
-  (templates.find((t) => t.id === id) || { name: "(حذف‌شده)" }).name;
+
+async function loadSchedule() {
+  const res = await apiFetch("/coach/schedule");
+  if (res && res.ok) schedule = res.data.schedule || [];
+}
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 
@@ -197,22 +198,26 @@ function renderCalendar() {
     const name = el("div", "day-name", d);
     if (i === todayIdx) name.appendChild(el("small", null, "امروز"));
     const slots = el("div", "slots");
-    const items = schedule.filter((s) => s.day === i);
+    const items = schedule.filter((s) => s.day_index === i);
     if (!items.length)
       slots.appendChild(el("span", "muted", "برنامه‌ای ثبت نشده"));
     items.forEach((s) => {
       const chip = el("span", "slot");
       chip.append(
-        el("span", null, tplName(s.tpl)),
-        el("small", null, s.target),
+        el("span", null, tplName(s.plan_kind, s.plan_id)),
+        el("small", null, s.target || ""),
       );
       const x = el("button", "icon-btn", "✕");
       x.type = "button";
       x.setAttribute("aria-label", "حذف از تقویم");
-      x.addEventListener("click", () => {
-        schedule.splice(schedule.indexOf(s), 1);
-        saveSchedule();
-        renderCalendar();
+      x.addEventListener("click", async () => {
+        const res = await apiFetch(`/coach/schedule/${s.id}`, { method: "DELETE" });
+        if (res && res.ok) {
+          await loadSchedule();
+          renderCalendar();
+        } else {
+          toast((res && res.data && res.data.error) || "خطا در حذف");
+        }
       });
       chip.appendChild(x);
       slots.appendChild(chip);
@@ -244,27 +249,35 @@ function fillCalTargets() {
   ].forEach((t) => $("calTarget").appendChild(el("option", null, t)));
 }
 $("calDay").value = todayIdx;
-$("calForm").addEventListener("submit", (e) => {
+$("calForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const raw = String($("calTpl").value || "");
-  const tplId = raw.split(":")[1];
-  if (!tplId || !templates.some((t) => String(t.id) === tplId)) {
+  const [kind, tplId] = raw.split(":");
+  if (!tplId || !templates.some((t) => String(t.id) === tplId && t._kind === kind)) {
     return toast("اول یک قالب بسازید");
   }
-  schedule.push({
-    day: +$("calDay").value,
-    tpl: +tplId,
-    target: $("calTarget").value,
+  const res = await apiFetch("/coach/schedule", {
+    method: "POST",
+    body: JSON.stringify({
+      day_index: +$("calDay").value,
+      plan_kind: kind,
+      plan_id: +tplId,
+      target: $("calTarget").value,
+    }),
   });
-  saveSchedule();
-  renderCalendar();
-  toast("به تقویم اضافه شد");
+  if (res && res.ok) {
+    await loadSchedule();
+    renderCalendar();
+    toast("به تقویم اضافه شد");
+  } else {
+    toast((res && res.data && res.data.error) || "خطا در افزودن به تقویم");
+  }
 });
 
 // ── Bootstrap ────────────────────────────────────────────────────────────────
 
 (async () => {
-  await Promise.all([loadTemplates(), loadAthletes()]);
+  await Promise.all([loadTemplates(), loadAthletes(), loadSchedule()]);
   fillCalTargets();
   renderCalendar();
 })();

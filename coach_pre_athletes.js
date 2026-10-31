@@ -6,7 +6,22 @@ if (typeof requireRole === "function") requireRole("coach");
 let filter = "همه";
 const dismissed = new Set();
 const reminded = new Set();
-const settings = getSettings();
+// replaced with server-persisted values in loadSettings()
+let settings = { idleDays: 3, autoRemind: false, weight: false, pr: false, priority: false };
+
+async function loadSettings() {
+  const res = await apiFetch("/coach/settings");
+  if (res && res.ok) {
+    const s = res.data.settings;
+    settings = {
+      idleDays: s.idle_days,
+      autoRemind: s.auto_remind,
+      weight: s.alert_weight,
+      pr: s.alert_pr,
+      priority: s.priority_inbox,
+    };
+  }
+}
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 
@@ -93,10 +108,24 @@ function renderAlerts() {
       b.type = "button";
       b.disabled = auto || reminded.has(a.key);
       b.title = auto ? "یادآوری خودکار فعال است" : "";
-      b.addEventListener("click", () => {
-        reminded.add(a.key);
-        toast(`یادآوری برای ${a.x.name} ثبت شد`);
-        renderAlerts();
+      b.addEventListener("click", async () => {
+        b.disabled = true;
+        // a reminder is a real direct message to the athlete
+        const res = await apiFetch("/chat/messages", {
+          method: "POST",
+          body: JSON.stringify({
+            receiver_id: a.x.id,
+            text: "یادآوری: لطفاً تمرین‌ها و وعده‌های غذایی امروزت را ثبت کن 💪",
+          }),
+        });
+        if (res && res.ok) {
+          reminded.add(a.key);
+          toast(`یادآوری برای ${a.x.name} ارسال شد`);
+          renderAlerts();
+        } else {
+          b.disabled = false;
+          toast((res && res.data && res.data.error) || "خطا در ارسال یادآوری");
+        }
       });
       row.appendChild(b);
     }
@@ -308,4 +337,7 @@ $("addForm").addEventListener("submit", async (e) => {
 
 // refresh data periodically
 setInterval(() => loadAthletes().catch(() => {}), 15000);
-loadAthletes();
+(async () => {
+  await loadSettings();
+  await loadAthletes();
+})();

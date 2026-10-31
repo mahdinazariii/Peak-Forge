@@ -243,6 +243,29 @@
         </div>
       </section>
     </main>
+
+    <dialog id="forgotDlg" class="forgot-dlg">
+      <h2>بازیابی رمز عبور</h2>
+      <form id="forgotForm">
+        <div data-step="1">
+          <p class="muted">ایمیل حساب‌ات را بزن تا کد بازیابی صادر شود.</p>
+          <label class="fld">ایمیل<input id="fgEmail" type="email" required dir="ltr" /></label>
+          <button class="btn primary" type="submit">دریافت کد</button>
+        </div>
+        <div data-step="2" hidden>
+          <p class="muted" id="fgCodeNote"></p>
+          <label class="fld">کد ۶ رقمی<input id="fgCode" required dir="ltr" inputmode="numeric" /></label>
+          <label class="fld">رمز عبور جدید<input id="fgPass" type="password" required dir="ltr" /></label>
+          <button class="btn primary" type="submit">تغییر رمز</button>
+        </div>
+        <div data-step="3" hidden>
+          <p class="ok">✅ رمز عبور عوض شد. حالا با رمز جدید وارد شو.</p>
+          <button class="btn primary" type="button" id="fgDone">باشه</button>
+        </div>
+      </form>
+      <button type="button" class="link" id="forgotClose">انصراف</button>
+    </dialog>
+
     <script src="./auth.js"></script>
   </body>
 </html>

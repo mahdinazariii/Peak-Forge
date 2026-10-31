@@ -339,4 +339,192 @@ router.get('/athletes/:id/detail', authMiddleware, async (req, res) => {
   }
 });
 
+// ── Notification settings (premium panel) ─────────────────────────────────────
+
+// GET /api/coach/settings — coach's alert settings (defaults when unset)
+router.get('/settings', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'coach') {
+      return res.status(403).json({ error: 'دسترسی فقط برای مربیان.' });
+    }
+    const row =
+      (await dbAsync.get('SELECT * FROM coach_settings WHERE coach_id = ?', [req.user.id])) || {};
+    return res.json({
+      settings: {
+        idle_days: row.idle_days ?? 3,
+        auto_remind: !!(row.auto_remind ?? 0),
+        alert_weight: !!(row.alert_weight ?? 0),
+        alert_pr: !!(row.alert_pr ?? 0),
+        priority_inbox: !!(row.priority_inbox ?? 0),
+      },
+    });
+  } catch (err) {
+    console.error('GET coach settings error:', err);
+    return res.status(500).json({ error: 'خطای سرور.' });
+  }
+});
+
+// PATCH /api/coach/settings — upsert the coach's alert settings
+router.patch('/settings', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'coach') {
+      return res.status(403).json({ error: 'دسترسی فقط برای مربیان.' });
+    }
+    const { idle_days, auto_remind, alert_weight, alert_pr, priority_inbox } = req.body;
+    const idle = idle_days == null ? null : Math.max(1, Math.min(30, parseInt(idle_days) || 3));
+
+    await dbAsync.run(
+      `INSERT INTO coach_settings (coach_id, idle_days, auto_remind, alert_weight, alert_pr, priority_inbox)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(coach_id) DO UPDATE SET
+         idle_days      = COALESCE(excluded.idle_days,      coach_settings.idle_days),
+         auto_remind    = COALESCE(excluded.auto_remind,    coach_settings.auto_remind),
+         alert_weight   = COALESCE(excluded.alert_weight,   coach_settings.alert_weight),
+         alert_pr       = COALESCE(excluded.alert_pr,       coach_settings.alert_pr),
+         priority_inbox = COALESCE(excluded.priority_inbox, coach_settings.priority_inbox)`,
+      [
+        req.user.id,
+        idle,
+        auto_remind == null ? null : auto_remind ? 1 : 0,
+        alert_weight == null ? null : alert_weight ? 1 : 0,
+        alert_pr == null ? null : alert_pr ? 1 : 0,
+        priority_inbox == null ? null : priority_inbox ? 1 : 0,
+      ]
+    );
+    return res.json({ message: 'تنظیمات ذخیره شد.' });
+  } catch (err) {
+    console.error('PATCH coach settings error:', err);
+    return res.status(500).json({ error: 'خطای سرور.' });
+  }
+});
+
+// ── Weekly send-schedule (premium calendar) ───────────────────────────────────
+
+// GET /api/coach/schedule — coach's weekly plan entries
+router.get('/schedule', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'coach') {
+      return res.status(403).json({ error: 'دسترسی فقط برای مربیان.' });
+    }
+    const rows = await dbAsync.all(
+      `SELECT id, day_index, plan_kind, plan_id, target FROM coach_schedule
+       WHERE coach_id = ? ORDER BY day_index ASC, id ASC`,
+      [req.user.id]
+    );
+    return res.json({ schedule: rows });
+  } catch (err) {
+    console.error('GET schedule error:', err);
+    return res.status(500).json({ error: 'خطای سرور.' });
+  }
+});
+
+// POST /api/coach/schedule — add one calendar entry { day_index, plan_kind, plan_id, target }
+router.post('/schedule', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'coach') {
+      return res.status(403).json({ error: 'دسترسی فقط برای مربیان.' });
+    }
+    const { day_index, plan_kind, plan_id, target } = req.body;
+    const day = parseInt(day_index);
+    if (!(day >= 0 && day <= 6) || !['workout', 'diet'].includes(plan_kind) || !parseInt(plan_id)) {
+      return res.status(400).json({ error: 'مقادیر تقویم نامعتبر است.' });
+    }
+
+    // the referenced plan must belong to this coach
+    const table = plan_kind === 'diet' ? 'diet_plans' : 'programs';
+    const plan = await dbAsync.get(
+      `SELECT id FROM ${table} WHERE id = ? AND coach_id = ?`,
+      [plan_id, req.user.id]
+    );
+    if (!plan) return res.status(404).json({ error: 'قالب موردنظر یافت نشد.' });
+
+    const result = await dbAsync.run(
+      `INSERT INTO coach_schedule (coach_id, day_index, plan_kind, plan_id, target)
+       VALUES (?, ?, ?, ?, ?)`,
+      [req.user.id, day, plan_kind, parseInt(plan_id), String(target || '').slice(0, 60)]
+    );
+    const entry = await dbAsync.get('SELECT * FROM coach_schedule WHERE id = ?', [result.lastID]);
+    return res.status(201).json({ message: 'به تقویم اضافه شد.', entry });
+  } catch (err) {
+    console.error('POST schedule error:', err);
+    return res.status(500).json({ error: 'خطای سرور.' });
+  }
+});
+
+// DELETE /api/coach/schedule/:id — remove a calendar entry
+router.delete('/schedule/:id', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'coach') {
+      return res.status(403).json({ error: 'دسترسی فقط برای مربیان.' });
+    }
+    await dbAsync.run('DELETE FROM coach_schedule WHERE id = ? AND coach_id = ?', [
+      req.params.id,
+      req.user.id,
+    ]);
+    return res.json({ message: 'از تقویم حذف شد.' });
+  } catch (err) {
+    console.error('DELETE schedule error:', err);
+    return res.status(500).json({ error: 'خطای سرور.' });
+  }
+});
+
+// ── Coach honors / medals (premium profile) ───────────────────────────────────
+
+// GET /api/coach/honors — coach's self-claimed honors, newest first
+router.get('/honors', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'coach') {
+      return res.status(403).json({ error: 'دسترسی فقط برای مربیان.' });
+    }
+    const honors = await dbAsync.all(
+      `SELECT id, title, detail, created_at FROM coach_honors
+       WHERE coach_id = ? ORDER BY created_at DESC, id DESC`,
+      [req.user.id]
+    );
+    return res.json({ honors });
+  } catch (err) {
+    console.error('GET honors error:', err);
+    return res.status(500).json({ error: 'خطای سرور.' });
+  }
+});
+
+// POST /api/coach/honors — add an honor { title, detail }
+router.post('/honors', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'coach') {
+      return res.status(403).json({ error: 'دسترسی فقط برای مربیان.' });
+    }
+    const { title, detail } = req.body;
+    if (!title || !String(title).trim()) {
+      return res.status(400).json({ error: 'عنوان افتخار الزامی است.' });
+    }
+    const result = await dbAsync.run(
+      `INSERT INTO coach_honors (coach_id, title, detail) VALUES (?, ?, ?)`,
+      [req.user.id, String(title).trim().slice(0, 120), String(detail || '').trim().slice(0, 160)]
+    );
+    const honor = await dbAsync.get('SELECT * FROM coach_honors WHERE id = ?', [result.lastID]);
+    return res.status(201).json({ message: 'افتخار ثبت شد.', honor });
+  } catch (err) {
+    console.error('POST honors error:', err);
+    return res.status(500).json({ error: 'خطای سرور.' });
+  }
+});
+
+// DELETE /api/coach/honors/:id — remove an honor
+router.delete('/honors/:id', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'coach') {
+      return res.status(403).json({ error: 'دسترسی فقط برای مربیان.' });
+    }
+    await dbAsync.run('DELETE FROM coach_honors WHERE id = ? AND coach_id = ?', [
+      req.params.id,
+      req.user.id,
+    ]);
+    return res.json({ message: 'افتخار حذف شد.' });
+  } catch (err) {
+    console.error('DELETE honors error:', err);
+    return res.status(500).json({ error: 'خطای سرور.' });
+  }
+});
+
 module.exports = router;

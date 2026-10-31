@@ -1,6 +1,7 @@
 const express = require('express');
 const { dbAsync } = require('../db');
 const { authMiddleware } = require('../middleware/auth');
+const { addXp, XP } = require('../game');
 
 const router = express.Router();
 
@@ -87,7 +88,7 @@ router.delete('/plans/:id', authMiddleware, async (req, res) => {
 router.get('/plans/:id/meals', authMiddleware, async (req, res) => {
   try {
     const meals = await dbAsync.all(
-      `SELECT * FROM meals WHERE diet_plan_id = ? ORDER BY sort_order ASC`,
+      `SELECT * FROM meals WHERE diet_plan_id = ? ORDER BY sort_order ASC, id ASC`,
       [req.params.id]
     );
     return res.json({ meals });
@@ -262,11 +263,27 @@ router.post('/log', authMiddleware, async (req, res) => {
     const { meal_id, done } = req.body;
     const today = new Date().toISOString().slice(0, 10);
 
+    const existing = await dbAsync.get(
+      'SELECT xp_awarded FROM meal_logs WHERE athlete_id = ? AND meal_id = ? AND log_date = ?',
+      [req.user.id, meal_id, today]
+    );
+    const wasAwarded = !!(existing && existing.xp_awarded);
+
     await dbAsync.run(
-      `INSERT OR REPLACE INTO meal_logs (athlete_id, meal_id, log_date, done)
-       VALUES (?, ?, ?, ?)`,
+      `INSERT INTO meal_logs (athlete_id, meal_id, log_date, done)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(athlete_id, meal_id, log_date) DO UPDATE SET done = excluded.done`,
       [req.user.id, meal_id, today, done ? 1 : 0]
     );
+
+    if (done && !wasAwarded) {
+      await addXp(req.user.id, XP.TICK_MEAL);
+      await dbAsync.run(
+        `UPDATE meal_logs SET xp_awarded = 1
+         WHERE athlete_id = ? AND meal_id = ? AND log_date = ?`,
+        [req.user.id, meal_id, today]
+      );
+    }
     return res.json({ message: 'ثبت شد.' });
   } catch (err) {
     console.error('POST meal log error:', err);

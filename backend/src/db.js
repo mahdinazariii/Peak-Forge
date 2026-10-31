@@ -266,6 +266,86 @@ async function initDb() {
     )
   `);
 
+  // Per-set training details logged by the athlete for one exercise/day
+  await dbAsync.run(`
+    CREATE TABLE IF NOT EXISTS exercise_sets (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      athlete_id  INTEGER NOT NULL,
+      exercise_id INTEGER NOT NULL,
+      log_date    TEXT NOT NULL,
+      set_index   INTEGER NOT NULL,
+      weight      REAL,
+      reps        INTEGER,
+      UNIQUE(athlete_id, exercise_id, log_date, set_index),
+      FOREIGN KEY(athlete_id)  REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY(exercise_id) REFERENCES exercises(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Gamification state (XP is incremented by ticks, records, weight logs)
+  await dbAsync.run(`
+    CREATE TABLE IF NOT EXISTS athlete_game (
+      user_id INTEGER PRIMARY KEY,
+      xp      INTEGER DEFAULT 0,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Per-coach notification/alert settings (premium panel)
+  await dbAsync.run(`
+    CREATE TABLE IF NOT EXISTS coach_settings (
+      coach_id       INTEGER PRIMARY KEY,
+      idle_days      INTEGER DEFAULT 3,
+      auto_remind    INTEGER DEFAULT 0,
+      alert_weight   INTEGER DEFAULT 0,
+      alert_pr       INTEGER DEFAULT 0,
+      priority_inbox INTEGER DEFAULT 0,
+      FOREIGN KEY(coach_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Coach weekly send-plan (which template goes to which target on which day)
+  await dbAsync.run(`
+    CREATE TABLE IF NOT EXISTS coach_schedule (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      coach_id  INTEGER NOT NULL,
+      day_index INTEGER NOT NULL CHECK(day_index BETWEEN 0 AND 6),
+      plan_kind TEXT NOT NULL CHECK(plan_kind IN ('workout', 'diet')),
+      plan_id   INTEGER NOT NULL,
+      target    TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(coach_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Coach self-claimed honors/medals shown on the premium profile
+  await dbAsync.run(`
+    CREATE TABLE IF NOT EXISTS coach_honors (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      coach_id   INTEGER NOT NULL,
+      title      TEXT NOT NULL,
+      detail     TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(coach_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // anti-farming flags: XP is awarded only the first time per item/day
+  try {
+    await dbAsync.run(`ALTER TABLE exercise_logs ADD COLUMN xp_awarded INTEGER DEFAULT 0`);
+  } catch (e) { /* column already exists */ }
+  try {
+    await dbAsync.run(`ALTER TABLE meal_logs ADD COLUMN xp_awarded INTEGER DEFAULT 0`);
+  } catch (e) { /* column already exists */ }
+
+  // Password reset (simulated email delivery — code + 10-minute expiry)
+  try {
+    await dbAsync.run(`ALTER TABLE users ADD COLUMN reset_code TEXT`);
+  } catch (e) { /* column already exists */ }
+  try {
+    await dbAsync.run(`ALTER TABLE users ADD COLUMN reset_expires DATETIME`);
+  } catch (e) { /* column already exists */ }
+
   // Backfill coach_athletes for assignments made before the auto-link existed
   await dbAsync.run(`
     INSERT OR IGNORE INTO coach_athletes (coach_id, athlete_id)

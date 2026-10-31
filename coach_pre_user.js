@@ -130,25 +130,101 @@ $("prodForm").addEventListener("submit", (e) => {
   toast("محصول ثبت شد");
 });
 
-// ── Notification settings (persisted locally) ────────────────────────────────
+// ── Notification settings (persisted on the server) ──────────────────────────
 
-const settings = getSettings();
-[2, 3, 5, 7].forEach((d) => {
-  const o = el("option", null, `${fa(d)} روز`);
-  o.value = d;
-  $("idleDays").appendChild(o);
+let coachSettings = {
+  idle_days: 3,
+  auto_remind: false,
+  alert_weight: false,
+  alert_pr: false,
+  priority_inbox: false,
+};
+
+function fillSettingsForm() {
+  const choices = [...new Set([2, 3, 5, 7, coachSettings.idle_days])].sort((a, b) => a - b);
+  $("idleDays").innerHTML = "";
+  choices.forEach((d) => {
+    const o = el("option", null, `${fa(d)} روز`);
+    o.value = d;
+    $("idleDays").appendChild(o);
+  });
+  $("idleDays").value = coachSettings.idle_days;
+  $("autoRemind").checked = coachSettings.auto_remind;
+  $("weight").checked = coachSettings.alert_weight;
+  $("pr").checked = coachSettings.alert_pr;
+  $("priority").checked = coachSettings.priority_inbox;
+}
+
+async function saveSettingsPatch(patch) {
+  const res = await apiFetch("/coach/settings", {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+  if (res && res.ok) toast("تنظیمات ذخیره شد");
+  else toast((res && res.data && res.data.error) || "خطا در ذخیره تنظیمات");
+}
+
+$("idleDays").addEventListener("change", () => {
+  coachSettings.idle_days = +$("idleDays").value;
+  saveSettingsPatch({ idle_days: coachSettings.idle_days });
 });
-$("idleDays").value = settings.idleDays;
-["autoRemind", "weight", "pr", "priority"].forEach((k) => {
-  $(k).checked = settings[k];
-  $(k).addEventListener("change", () => {
-    settings[k] = $(k).checked;
-    saveSettings(settings);
+[
+  ["autoRemind", "auto_remind"],
+  ["weight", "alert_weight"],
+  ["pr", "alert_pr"],
+  ["priority", "priority_inbox"],
+].forEach(([elmId, key]) => {
+  $(elmId).addEventListener("change", () => {
+    coachSettings[key] = $(elmId).checked;
+    saveSettingsPatch({ [key]: coachSettings[key] });
   });
 });
-$("idleDays").addEventListener("change", () => {
-  settings.idleDays = +$("idleDays").value;
-  saveSettings(settings);
+
+// ── Honors (persisted on the server) ─────────────────────────────────────────
+
+function renderHonors(honors) {
+  $("medals").innerHTML = "";
+  if (!honors.length) {
+    $("medals").appendChild(el("li", null, "هنوز افتخاری ثبت نشده است."));
+    return;
+  }
+  honors.forEach((h) => {
+    const li = el("li");
+    li.append(el("strong", null, h.title), el("small", null, h.detail || ""));
+    const x = el("button", "icon-btn", "✕");
+    x.type = "button";
+    x.setAttribute("aria-label", "حذف افتخار");
+    x.addEventListener("click", async () => {
+      const res = await apiFetch(`/coach/honors/${h.id}`, { method: "DELETE" });
+      if (res && res.ok) loadHonors();
+      else toast((res && res.data && res.data.error) || "خطا در حذف");
+    });
+    li.appendChild(x);
+    $("medals").appendChild(li);
+  });
+}
+
+async function loadHonors() {
+  const res = await apiFetch("/coach/honors");
+  if (res && res.ok) renderHonors(res.data.honors || []);
+}
+
+$("honorForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const title = $("hTitle").value.trim();
+  if (!title) return;
+  const res = await apiFetch("/coach/honors", {
+    method: "POST",
+    body: JSON.stringify({ title, detail: $("hDetail").value.trim() }),
+  });
+  if (res && res.ok) {
+    $("hTitle").value = "";
+    $("hDetail").value = "";
+    toast("افتخار ثبت شد");
+    loadHonors();
+  } else {
+    toast((res && res.data && res.data.error) || "خطا در ثبت افتخار");
+  }
 });
 
 // ── Bootstrap ────────────────────────────────────────────────────────────────
@@ -162,8 +238,13 @@ $("idleDays").addEventListener("change", () => {
   const stats = await apiFetch("/profile/stats/coach");
   if (stats && stats.ok) coachStats = stats.data;
 
+  const st = await apiFetch("/coach/settings");
+  if (st && st.ok) coachSettings = { ...coachSettings, ...st.data.settings };
+
   renderProfile();
   renderMedals();
   fillForm();
+  fillSettingsForm();
   renderStore();
+  loadHonors();
 })();

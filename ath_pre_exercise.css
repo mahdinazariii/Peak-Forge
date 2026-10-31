@@ -351,3 +351,80 @@ p {
     transition: none !important;
   }
 }
+
+/* Per-set details dialog */
+.btn-ghost {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.78rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-ghost.primary {
+  background: var(--red, #f97316);
+  color: var(--black, #181818);
+  border-color: transparent;
+}
+.sets-btn {
+  pointer-events: auto;
+}
+#setsDlg {
+  min-width: min(22rem, 92vw);
+}
+.sets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 45vh;
+  overflow-y: auto;
+  margin: 0.7rem 0;
+}
+.set-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  background: var(--surface, #242424);
+  border-radius: 0.7rem;
+  padding: 0.5rem 0.7rem;
+}
+.set-row .set-idx {
+  min-width: 3.2rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.set-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.68rem;
+  color: var(--muted, #9a9a8f);
+  flex: 1;
+}
+.set-row input {
+  width: 100%;
+  background: var(--black, #181818);
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  color: inherit;
+  font: inherit;
+  padding: 0.35rem 0.5rem;
+}
+.set-row .set-del {
+  border: 0;
+  background: none;
+  color: var(--muted, #9a9a8f);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.3rem;
+}
+.sets-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-start;
+  margin-top: 0.5rem;
+}

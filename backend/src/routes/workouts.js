@@ -1,6 +1,7 @@
 const express = require('express');
 const { dbAsync } = require('../db');
 const { authMiddleware } = require('../middleware/auth');
+const { addXp, XP } = require('../game');
 
 const router = express.Router();
 
@@ -175,7 +176,7 @@ router.post('/programs/:id/copy', authMiddleware, async (req, res) => {
 
     const srcEx = await dbAsync.all(
       `SELECT name, sets, rest, day_index, day_name, focus, sort_order
-       FROM exercises WHERE program_id = ? ORDER BY sort_order ASC`,
+       FROM exercises WHERE program_id = ? ORDER BY sort_order ASC, id ASC`,
       [src.id]
     );
     for (const e of srcEx) {
@@ -189,6 +190,29 @@ router.post('/programs/:id/copy', authMiddleware, async (req, res) => {
     return res.status(201).json({ message: 'کپی ساخته شد.', program, exercises_copied: srcEx.length });
   } catch (err) {
     console.error('COPY program error:', err);
+    return res.status(500).json({ error: 'خطای سرور.' });
+  }
+});
+
+// DELETE /api/workouts/programs/:id/exercises/:exId — coach: remove an exercise
+router.delete('/programs/:id/exercises/:exId', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'coach') {
+      return res.status(403).json({ error: 'دسترسی غیرمجاز.' });
+    }
+    const prog = await dbAsync.get(
+      'SELECT id FROM programs WHERE id = ? AND coach_id = ?',
+      [req.params.id, req.user.id]
+    );
+    if (!prog) return res.status(404).json({ error: 'برنامه یافت نشد.' });
+
+    await dbAsync.run(
+      'DELETE FROM exercises WHERE id = ? AND program_id = ?',
+      [req.params.exId, req.params.id]
+    );
+    return res.json({ message: 'حرکت حذف شد.' });
+  } catch (err) {
+    console.error('DELETE exercise error:', err);
     return res.status(500).json({ error: 'خطای سرور.' });
   }
 });
@@ -236,6 +260,86 @@ router.post('/programs/:id/assign', authMiddleware, async (req, res) => {
   }
 });
 
+// ── Per-set training details ──────────────────────────────────────────────────
+
+// GET /api/workouts/sets?exercise_id=X — athlete: today's logged sets for one exercise
+router.get('/sets', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'athlete') {
+      return res.status(403).json({ error: 'دسترسی غیرمجاز.' });
+    }
+    const exerciseId = parseInt(req.query.exercise_id);
+    if (!exerciseId) return res.status(400).json({ error: 'شناسه حرکت الزامی است.' });
+    const today = new Date().toISOString().slice(0, 10);
+    const sets = await dbAsync.all(
+      `SELECT set_index, weight, reps FROM exercise_sets
+       WHERE athlete_id = ? AND exercise_id = ? AND log_date = ?
+       ORDER BY set_index ASC`,
+      [req.user.id, exerciseId, today]
+    );
+    return res.json({ sets, date: today });
+  } catch (err) {
+    console.error('GET sets error:', err);
+    return res.status(500).json({ error: 'خطای سرور.' });
+  }
+});
+
+// POST /api/workouts/sets — athlete: replace today's sets for one exercise
+// body: { exercise_id, sets: [{ weight, reps }, ...] }
+router.post('/sets', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'athlete') {
+      return res.status(403).json({ error: 'فقط ورزشکاران می‌توانند ست ثبت کنند.' });
+    }
+    const { exercise_id, sets } = req.body;
+    const exerciseId = parseInt(exercise_id);
+    if (!exerciseId || !Array.isArray(sets) || sets.length === 0) {
+      return res.status(400).json({ error: 'حرکت و لیست ست‌ها الزامی است.' });
+    }
+    if (sets.length > 20) {
+      return res.status(400).json({ error: 'حداکثر ۲۰ ست مجاز است.' });
+    }
+    for (const s of sets) {
+      const w = s.weight == null || s.weight === '' ? null : parseFloat(s.weight);
+      const r = s.reps == null || s.reps === '' ? null : parseInt(s.reps);
+      if ((w != null && (isNaN(w) || w < 0 || w > 1000)) ||
+          (r != null && (isNaN(r) || r < 0 || r > 1000))) {
+        return res.status(400).json({ error: 'مقدار وزن یا تکرار نامعتبر است.' });
+      }
+    }
+
+    const exercise = await dbAsync.get('SELECT id FROM exercises WHERE id = ?', [exerciseId]);
+    if (!exercise) return res.status(404).json({ error: 'حرکت یافت نشد.' });
+
+    const today = new Date().toISOString().slice(0, 10);
+    await dbAsync.run(
+      'DELETE FROM exercise_sets WHERE athlete_id = ? AND exercise_id = ? AND log_date = ?',
+      [req.user.id, exerciseId, today]
+    );
+    let i = 0;
+    for (const s of sets) {
+      const w = s.weight == null || s.weight === '' ? null : parseFloat(s.weight);
+      const r = s.reps == null || s.reps === '' ? null : parseInt(s.reps);
+      await dbAsync.run(
+        `INSERT INTO exercise_sets (athlete_id, exercise_id, log_date, set_index, weight, reps)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [req.user.id, exerciseId, today, i++, w, r]
+      );
+    }
+
+    const saved = await dbAsync.all(
+      `SELECT set_index, weight, reps FROM exercise_sets
+       WHERE athlete_id = ? AND exercise_id = ? AND log_date = ?
+       ORDER BY set_index ASC`,
+      [req.user.id, exerciseId, today]
+    );
+    return res.json({ message: 'ست‌ها ثبت شد.', sets: saved });
+  } catch (err) {
+    console.error('POST sets error:', err);
+    return res.status(500).json({ error: 'خطای سرور.' });
+  }
+});
+
 // ── Athlete Exercise Log (tick done/undone) ───────────────────────────────────
 
 // GET /api/workouts/log — get today's exercise log for logged-in athlete
@@ -262,11 +366,29 @@ router.post('/log', authMiddleware, async (req, res) => {
     const { exercise_id, done } = req.body;
     const today = new Date().toISOString().slice(0, 10);
 
+    const existing = await dbAsync.get(
+      'SELECT xp_awarded FROM exercise_logs WHERE athlete_id = ? AND exercise_id = ? AND log_date = ?',
+      [req.user.id, exercise_id, today]
+    );
+    const wasAwarded = !!(existing && existing.xp_awarded);
+
+    // upsert keeps xp_awarded intact so untick/retick cannot re-award XP
     await dbAsync.run(
-      `INSERT OR REPLACE INTO exercise_logs (athlete_id, exercise_id, log_date, done)
-       VALUES (?, ?, ?, ?)`,
+      `INSERT INTO exercise_logs (athlete_id, exercise_id, log_date, done)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(athlete_id, exercise_id, log_date) DO UPDATE SET done = excluded.done`,
       [req.user.id, exercise_id, today, done ? 1 : 0]
     );
+
+    // reward the first completion of the day only (no XP farming via re-ticks)
+    if (done && !wasAwarded) {
+      await addXp(req.user.id, XP.TICK_EXERCISE);
+      await dbAsync.run(
+        `UPDATE exercise_logs SET xp_awarded = 1
+         WHERE athlete_id = ? AND exercise_id = ? AND log_date = ?`,
+        [req.user.id, exercise_id, today]
+      );
+    }
     return res.json({ message: 'ثبت شد.' });
   } catch (err) {
     console.error('POST log error:', err);

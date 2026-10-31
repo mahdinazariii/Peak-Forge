@@ -120,3 +120,39 @@
 .dlg-actions {
   margin-top: 0.9rem;
 }
+
+/* Content editor dialog (exercises / meals) */
+.grow {
+  flex: 1;
+  min-width: 10rem;
+}
+.content-list {
+  max-height: 16rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.6rem 0 0.9rem;
+}
+.content-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--surface, #242424);
+  border-radius: 0.7rem;
+  padding: 0.5rem 0.7rem;
+}
+.content-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.content-text strong {
+  font-size: 0.9rem;
+}
+.content-text small {
+  color: var(--muted, #9a9a8f);
+  font-size: 0.72rem;
+}
