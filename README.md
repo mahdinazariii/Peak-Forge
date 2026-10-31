@@ -109,6 +109,12 @@ record, 100 ticks) are computed on demand.
 - Unlimited athletes, category tags + filters, per-athlete detail (trend chart,
   records, assigned plans), priority inbox, bulk send, program/diet copy & rename
 
+## Documentation
+
+- [User stories and acceptance criteria](docs/user-stories.md)
+- [API contract](docs/api.md)
+- [Design views (Use Case, Activity, Architecture, ERD) + hosting rationale](docs/design.md)
+
 ## Testing
 
 Two end-to-end API test scripts run against a live server on port 3000:
