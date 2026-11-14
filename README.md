@@ -6,6 +6,8 @@ personal records, and a gamification system — with a Free/Premium tier model.
 
 Built as a Software Engineering course project.
 
+> 📋 **مستندات ارائه فاز اول (تحلیل و طراحی):** برای دسترسی به پکیج کامل ارائه فاز اول، داستان‌های کاربر اولویت‌بندی‌شده، نماهای چهارگانه طراحی (UML Use Case, Activity, Architecture, ERD)، پروتوتایپ کلیک‌شده و قرارداد API، سند **[README_PHASE1.md](README_PHASE1.md)** را مطالعه کنید.
+
 ## Tech Stack
 
 | Layer     | Technology                                                    |
@@ -116,6 +118,7 @@ record, 100 ticks) are computed on demand.
 
 ## Documentation
 
+- **[Presentation 1 Comprehensive Package (مستندات ارائه فاز اول)](README_PHASE1.md)**
 - [User stories and acceptance criteria](docs/user-stories.md)
 - [API contract](docs/api.md)
 - [Design views (Use Case, Activity, Architecture, ERD) + hosting rationale](docs/design.md)
