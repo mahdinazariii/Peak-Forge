@@ -1,0 +1,174 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1260" viewBox="0 0 1680 1260">
+  <defs>
+    <style>
+      text { font-family: Vazirmatn, Tahoma, sans-serif; }
+      .bg { fill:#101010 } .panel { fill:#181818; stroke:#353535; stroke-width:2 }
+      .surface { fill:#242424 } .orange { fill:#f97316 } .cream { fill:#fffcd4 }
+      .muted { fill:#9a9a8f } .green { fill:#35c987 } .red { fill:#ff7777 }
+      .title { fill:#fffcd4; font-size:34px; font-weight:800 }
+      .subtitle { fill:#aaa99f; font-size:17px }
+      .screenTitle { fill:#fffcd4; font-size:20px; font-weight:700 }
+      .body { fill:#fffcd4; font-size:14px }
+      .small { fill:#aaa99f; font-size:12px }
+      .tiny { fill:#aaa99f; font-size:10px }
+      .label { fill:#f97316; font-size:13px; font-weight:700 }
+      .phone { fill:#181818; stroke:#575757; stroke-width:3 }
+      .line { stroke:#f97316; stroke-width:3; fill:none; marker-end:url(#arrow) }
+      .thin { stroke:#444; stroke-width:1 }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#f97316" />
+    </marker>
+  </defs>
+  <rect class="bg" width="1680" height="1260" />
+  <text x="1580" y="62" text-anchor="end" class="title">Peak-Forge | پروتوتایپ سفر اصلی کاربر</text>
+  <text x="1580" y="94" text-anchor="end" class="subtitle">ورود → ثبت تمرین → پاسخ مربی → پیگیری شاگرد</text>
+  <rect x="60" y="122" width="1560" height="2" fill="#333" />
+
+  <!-- Screen 1: Login -->
+  <g transform="translate(60,160)">
+    <text x="320" y="0" text-anchor="end" class="label">۰۱ · احراز هویت</text>
+    <rect class="phone" x="0" y="20" width="340" height="700" rx="28" />
+    <rect class="orange" x="20" y="44" width="300" height="62" rx="16" />
+    <text x="300" y="83" text-anchor="end" fill="#181818" font-size="20" font-weight="800">◆ Peak-Forge</text>
+    <text x="300" y="136" text-anchor="end" class="small">تمرین، تغذیه و پیشرفت، در کنار مربی شما</text>
+    <rect class="surface" x="24" y="166" width="292" height="48" rx="14" />
+    <rect class="orange" x="172" y="171" width="138" height="38" rx="11" />
+    <text x="280" y="196" text-anchor="end" fill="#181818" font-size="14" font-weight="700">ورود</text>
+    <text x="135" y="196" text-anchor="end" class="muted" font-size="14">ثبت‌نام</text>
+    <text x="302" y="252" text-anchor="end" class="small">ایمیل</text>
+    <rect class="surface" x="24" y="263" width="292" height="46" rx="10" />
+    <text x="298" y="292" text-anchor="end" class="body">athlete@example.com</text>
+    <text x="302" y="345" text-anchor="end" class="small">رمز عبور</text>
+    <rect class="surface" x="24" y="356" width="292" height="46" rx="10" />
+    <text x="298" y="385" text-anchor="end" class="body">••••••••</text>
+    <text x="302" y="429" text-anchor="end" class="label">رمز عبور را فراموش کرده‌اید؟</text>
+    <rect class="orange" x="24" y="452" width="292" height="52" rx="13" />
+    <text x="170" y="485" text-anchor="middle" fill="#181818" font-size="16" font-weight="800">ورود</text>
+    <rect x="24" y="522" width="292" height="58" rx="12" fill="#3b1815" stroke="#aa392e" />
+    <text x="298" y="547" text-anchor="end" class="red" font-size="12">حالت خطا: ایمیل یا رمز اشتباه است.</text>
+    <text x="298" y="568" text-anchor="end" class="tiny">ورود ناموفق → پیام خطا، بدون تغییر صفحه</text>
+    <text x="298" y="668" text-anchor="end" class="small">ورزشکار و مربی از همین فرم وارد می‌شوند.</text>
+  </g>
+
+  <!-- Screen 2: Athlete exercise -->
+  <g transform="translate(460,160)">
+    <text x="320" y="0" text-anchor="end" class="label">۰۲ · ثبت تمرین (ورزشکار)</text>
+    <rect class="phone" x="0" y="20" width="340" height="700" rx="28" />
+    <text x="310" y="69" text-anchor="end" class="screenTitle">برنامه‌ی تمرینی امروز</text>
+    <rect class="surface" x="22" y="90" width="296" height="72" rx="14" />
+    <circle cx="170" cy="126" r="27" fill="none" stroke="#444" stroke-width="7" />
+    <path d="M170 99 A27 27 0 1 1 148 142" fill="none" stroke="#f97316" stroke-width="7" stroke-linecap="round" />
+    <text x="170" y="131" text-anchor="middle" class="cream" font-size="14" font-weight="800">۲۵٪</text>
+    <text x="300" y="119" text-anchor="end" class="body">شنبه · سینه و پشت‌بازو</text>
+    <text x="300" y="142" text-anchor="end" class="small">۱ از ۴ حرکت انجام‌شده</text>
+    <text x="300" y="197" text-anchor="end" class="small">این هفته</text>
+    <g class="tiny" text-anchor="middle">
+      <rect class="orange" x="30" y="208" width="34" height="35" rx="9"/><text x="47" y="231" fill="#181818">ش</text>
+      <rect class="surface" x="72" y="208" width="34" height="35" rx="9"/><text x="89" y="231" class="cream">ی</text>
+      <rect class="surface" x="114" y="208" width="34" height="35" rx="9"/><text x="131" y="231" class="cream">د</text>
+      <rect class="surface" x="156" y="208" width="34" height="35" rx="9"/><text x="173" y="231" class="cream">س</text>
+      <rect class="surface" x="198" y="208" width="34" height="35" rx="9"/><text x="215" y="231" class="cream">چ</text>
+      <rect class="surface" x="240" y="208" width="34" height="35" rx="9"/><text x="257" y="231" class="cream">پ</text>
+      <rect class="surface" x="282" y="208" width="34" height="35" rx="9"/><text x="299" y="231" class="cream">ج</text>
+    </g>
+    <text x="300" y="279" text-anchor="end" class="screenTitle" font-size="16">حرکت‌ها</text>
+    <g>
+      <rect class="surface" x="22" y="294" width="296" height="61" rx="12" />
+      <rect class="green" x="280" y="313" width="22" height="22" rx="6" />
+      <text x="291" y="329" text-anchor="middle" fill="#10251b" font-size="13" font-weight="800">✓</text>
+      <text x="266" y="319" text-anchor="end" class="body">پرس سینه هالتر</text><text x="266" y="340" text-anchor="end" class="tiny">۴ × ۱۰ · استراحت ۹۰ ثانیه</text>
+      <rect class="surface" x="22" y="366" width="296" height="61" rx="12" />
+      <rect x="280" y="385" width="22" height="22" rx="6" fill="#111" stroke="#666" />
+      <text x="266" y="391" text-anchor="end" class="body">پرس بالا سینه دمبل</text><text x="266" y="412" text-anchor="end" class="tiny">۳ × ۱۲ · استراحت ۶۰ ثانیه</text>
+      <rect class="surface" x="22" y="438" width="296" height="61" rx="12" />
+      <rect x="280" y="457" width="22" height="22" rx="6" fill="#111" stroke="#666" />
+      <text x="266" y="463" text-anchor="end" class="body">دیپ</text><text x="266" y="484" text-anchor="end" class="tiny">۳ × ۱۰ · استراحت ۶۰ ثانیه</text>
+      <rect class="surface" x="22" y="510" width="296" height="61" rx="12" />
+      <rect x="280" y="529" width="22" height="22" rx="6" fill="#111" stroke="#666" />
+      <text x="266" y="535" text-anchor="end" class="body">پشت بازو سیم‌کش</text><text x="266" y="556" text-anchor="end" class="tiny">۳ × ۱۲ · استراحت ۴۵ ثانیه</text>
+    </g>
+    <rect x="22" y="598" width="296" height="48" rx="12" fill="#26321b" stroke="#698d39" />
+    <text x="298" y="619" text-anchor="end" class="green" font-size="12" font-weight="700">حالت موفق: تیک ذخیره شد · +۱۰ XP</text>
+    <text x="298" y="638" text-anchor="end" class="tiny">در صورت خطا: پیام خطا، تیک ثبت نمی‌شود</text>
+  </g>
+
+  <!-- Screen 3: Coach priority inbox -->
+  <g transform="translate(860,160)">
+    <text x="320" y="0" text-anchor="end" class="label">۰۳ · پاسخ به سؤال فوری (مربی)</text>
+    <rect class="phone" x="0" y="20" width="340" height="700" rx="28" />
+    <text x="310" y="68" text-anchor="end" class="screenTitle">گفت‌وگوها</text>
+    <rect class="surface" x="22" y="87" width="296" height="46" rx="12" />
+    <text x="295" y="116" text-anchor="end" class="muted" font-size="13">گفت‌وگوها</text>
+    <rect class="orange" x="160" y="92" width="150" height="36" rx="9" />
+    <text x="280" y="116" text-anchor="end" fill="#181818" font-size="13" font-weight="800">اولویت‌دار</text>
+    <circle cx="173" cy="109" r="11" fill="#181818"/><text x="173" y="113" text-anchor="middle" fill="#f97316" font-size="10" font-weight="800">۱</text>
+    <rect class="surface" x="22" y="153" width="296" height="84" rx="14" stroke="#f97316" stroke-width="2" />
+    <circle cx="278" cy="184" r="19" fill="#f97316"/><text x="278" y="190" text-anchor="middle" fill="#181818" font-size="16" font-weight="800">س</text>
+    <text x="250" y="180" text-anchor="end" class="body" font-weight="700">سارا محمدی</text>
+    <text x="250" y="202" text-anchor="end" class="small">سؤال فوری: وزنه‌ی شنبه را سنگین‌تر کنم؟</text>
+    <text x="40" y="222" text-anchor="start" class="orange" font-size="11">★ نیاز به پاسخ</text>
+    <text x="300" y="278" text-anchor="end" class="screenTitle" font-size="16">گفت‌وگو با سارا</text>
+    <rect x="75" y="297" width="228" height="72" rx="14" fill="#242424" />
+    <text x="286" y="322" text-anchor="end" class="body">سؤال فوری: وزنه‌ی شنبه را</text>
+    <text x="286" y="343" text-anchor="end" class="body">سنگین‌تر کنم؟</text>
+    <text x="286" y="361" text-anchor="end" class="tiny">ورزشکار · ۱۰:۲۶</text>
+    <rect x="22" y="385" width="225" height="72" rx="14" fill="#63300f" />
+    <text x="230" y="410" text-anchor="end" class="body">بله، ۲.۵ کیلو اضافه کن.</text>
+    <text x="230" y="431" text-anchor="end" class="body">موفق باشی!</text>
+    <text x="230" y="449" text-anchor="end" class="tiny">مربی · ۱۰:۳۰</text>
+    <rect class="surface" x="22" y="591" width="296" height="48" rx="12" />
+    <text x="296" y="621" text-anchor="end" class="muted" font-size="13">پاسخت را بنویس…</text>
+    <circle cx="49" cy="615" r="17" fill="#f97316"/><text x="49" y="621" text-anchor="middle" fill="#181818" font-size="17" font-weight="800">➤</text>
+    <text x="300" y="674" text-anchor="end" class="green" font-size="12" font-weight="700">پاسخ مربی → پیام از صندوق اولویت‌دار خارج می‌شود</text>
+  </g>
+
+  <!-- Screen 4: Coach athlete dashboard -->
+  <g transform="translate(1260,160)">
+    <text x="320" y="0" text-anchor="end" class="label">۰۴ · پیگیری پایبندی (مربی)</text>
+    <rect class="phone" x="0" y="20" width="340" height="700" rx="28" />
+    <text x="310" y="67" text-anchor="end" class="screenTitle">ورزشکاران من</text>
+    <g text-anchor="middle">
+      <rect class="surface" x="20" y="88" width="68" height="65" rx="12"/><text x="54" y="117" class="cream" font-size="18" font-weight="800">۱۲</text><text x="54" y="139" class="tiny">کل شاگردان</text>
+      <rect class="surface" x="98" y="88" width="68" height="65" rx="12"/><text x="132" y="117" class="green" font-size="18" font-weight="800">۹</text><text x="132" y="139" class="tiny">فعال امروز</text>
+      <rect class="surface" x="176" y="88" width="68" height="65" rx="12"/><text x="210" y="117" class="orange" font-size="18" font-weight="800">۲</text><text x="210" y="139" class="tiny">توجه</text>
+      <rect class="surface" x="254" y="88" width="68" height="65" rx="12"/><text x="288" y="117" class="cream" font-size="18" font-weight="800">۸۲٪</text><text x="288" y="139" class="tiny">میانگین</text>
+    </g>
+    <rect class="surface" x="22" y="171" width="296" height="114" rx="14" />
+    <text x="298" y="198" text-anchor="end" class="body" font-weight="700">هشدارها · ۲</text>
+    <text x="298" y="223" text-anchor="end" class="small">سارا محمدی · ۱ روز فعالیت ثبت نکرده</text>
+    <rect class="orange" x="205" y="239" width="92" height="30" rx="9" /><text x="251" y="259" text-anchor="middle" fill="#181818" font-size="11" font-weight="700">یادآوری</text>
+    <text x="298" y="320" text-anchor="end" class="screenTitle" font-size="16">پایبندی ورزشکاران</text>
+    <rect class="surface" x="22" y="337" width="296" height="92" rx="14" />
+    <circle cx="282" cy="369" r="18" fill="#f97316"/><text x="282" y="375" text-anchor="middle" fill="#181818" font-size="14" font-weight="800">س</text>
+    <text x="251" y="371" text-anchor="end" class="body">سارا محمدی</text><text x="48" y="371" text-anchor="start" class="green" font-size="13" font-weight="800">۸۸٪</text>
+    <rect x="42" y="393" width="256" height="8" rx="4" fill="#111"/><rect x="42" y="393" width="225" height="8" rx="4" fill="#f97316"/>
+    <text x="294" y="419" text-anchor="end" class="tiny">۱۴ جلسه · ددلیفت ۸۵ کیلو · حجم</text>
+    <rect class="surface" x="22" y="440" width="296" height="92" rx="14" />
+    <circle cx="282" cy="472" r="18" fill="#f97316"/><text x="282" y="478" text-anchor="middle" fill="#181818" font-size="14" font-weight="800">ن</text>
+    <text x="251" y="474" text-anchor="end" class="body">نگار رستمی</text><text x="48" y="474" text-anchor="start" class="orange" font-size="13" font-weight="800">۴۵٪</text>
+    <rect x="42" y="496" width="256" height="8" rx="4" fill="#111"/><rect x="42" y="496" width="115" height="8" rx="4" fill="#f97316"/>
+    <text x="294" y="522" text-anchor="end" class="tiny">۲ روز بی‌فعالیت · کاهش وزن</text>
+    <rect class="surface" x="22" y="550" width="296" height="48" rx="12" />
+    <text x="295" y="580" text-anchor="end" class="muted" font-size="12">جست‌وجو و فیلتر شاگردان…</text>
+    <text x="300" y="640" text-anchor="end" class="tiny">آمار بر اساس لاگ‌های ۷ روز اخیر</text>
+  </g>
+
+  <!-- Flow connectors -->
+  <path class="line" d="M400 512 L448 512" />
+  <path class="line" d="M800 512 L848 512" />
+  <path class="line" d="M1200 512 L1248 512" />
+  <text x="420" y="490" text-anchor="middle" class="tiny">ورود</text>
+  <text x="820" y="490" text-anchor="middle" class="tiny">ارسال سؤال</text>
+  <text x="1220" y="490" text-anchor="middle" class="tiny">پایش</text>
+
+  <!-- Architecture note -->
+  <rect x="60" y="930" width="1560" height="250" rx="22" fill="#1b1b1b" stroke="#383838" stroke-width="2" />
+  <text x="1580" y="974" text-anchor="end" class="screenTitle">یادداشت معماری بر اساس پوشه‌ی کپی‌شده</text>
+  <text x="1580" y="1014" text-anchor="end" class="body">این پوشه‌ی کپی‌شده در وضعیت فعلی یک prototype فرانت‌اند است: سه ورودی HTML، دو پوسته‌ی نقش‌محور و داده‌های عمدتاً نمونه‌ای / localStorage.</text>
+  <text x="1580" y="1048" text-anchor="end" class="body">این برد، جریان UI را نشان می‌دهد؛ ورود، پایبندی و ارسال پیام در این SVG تعاملی یا متصل به بک‌اند نیستند.</text>
+  <text x="1580" y="1082" text-anchor="end" class="body">برای دفاع به‌عنوان معماری محصول: API و persistence سروری، auth/role guard، خطاها و قراردادهای داده را جداگانه مستند کنید.</text>
+  <text x="1580" y="1136" text-anchor="end" class="small">وارد کردن به Figma: فایل SVG را روی canvas بکشید یا از File → Place image استفاده کنید؛ سپس فریم‌ها را انتخاب و Prototype connections را بسازید.</text>
+  <rect x="60" y="1200" width="1560" height="2" fill="#333" />
+  <text x="1580" y="1233" text-anchor="end" class="tiny">Peak-Forge · RTL mobile wireframe · source: Peak-Forge - Copy</text>
+</svg>
